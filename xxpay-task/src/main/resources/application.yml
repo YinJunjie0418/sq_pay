@@ -1,0 +1,27 @@
+server:
+  port: 8195
+
+spring:
+  dubbo:
+    application:
+      name: yeepay-task
+    registry:
+      address: zookeeper://127.0.0.1:2181
+    scan: org.yeepay
+  profiles:
+     active: prod
+
+  mvc:
+    static-path-pattern: /mch_bill_down/**
+  resources:
+    static-locations: file:${config.mchBillPath}
+
+config:
+  ali:
+    billPath: @bill.root.path@/alipay/
+  mchBillPath: @bill.root.path@/mch/
+
+logging:
+  file: ./log/yeepay-task.log
+  level:
+    root: info

@@ -1,0 +1,31 @@
+package org.yeepay.service.dao.mapper;
+
+import org.apache.ibatis.annotations.Param;
+import org.yeepay.core.entity.PayProduct;
+import org.yeepay.core.entity.PayProductExample;
+
+import java.util.List;
+
+public interface PayProductMapper {
+    int countByExample(PayProductExample example);
+
+    int deleteByExample(PayProductExample example);
+
+    int deleteByPrimaryKey(Integer id);
+
+    int insert(PayProduct record);
+
+    int insertSelective(PayProduct record);
+
+    List<PayProduct> selectByExample(PayProductExample example);
+
+    PayProduct selectByPrimaryKey(Integer id);
+
+    int updateByExampleSelective(@Param("record") PayProduct record, @Param("example") PayProductExample example);
+
+    int updateByExample(@Param("record") PayProduct record, @Param("example") PayProductExample example);
+
+    int updateByPrimaryKeySelective(PayProduct record);
+
+    int updateByPrimaryKey(PayProduct record);
+}
