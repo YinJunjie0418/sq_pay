@@ -4,10 +4,10 @@
 #也可以作为启动java程序的独立脚本来使用。
 #
 #JDK所在路径
-JAVA_HOME="/usr/local/jdk/jdk1.8.0_121"
+JAVA_HOME="/usr/java/jdk1.8.0_171"
 
 #Java程序所在的目录（classes的上一级目录）
-APP_HOME=/home/yeepay/service/yeepay-service-1.0.0
+APP_HOME=/www/integration-pay/yeepay-service
 
 #需要启动的Java主程序（main方法类）
 APP_MAINCLASS=org.yeepay.service.YeePayServiceAppliaction
@@ -19,8 +19,8 @@ for i in "$APP_HOME"/lib/*.jar; do
 done
 
 #java虚拟机启动参数
-JAVA_OPTS="-Xmx2048m -XX:MetaspaceSize=512m -XX:MaxMetaspaceSize=768m -Xss2m"
-
+#JAVA_OPTS="-Xmx2048m -XX:MetaspaceSize=512m -XX:MaxMetaspaceSize=768m -Xss2m"
+JAVA_OPTS="-Xmx128m"
 
 ###################################
 #(函数)判断程序是否已启动
