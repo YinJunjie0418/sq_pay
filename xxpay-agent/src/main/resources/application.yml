@@ -10,7 +10,7 @@ spring:
     application:
       name: yeepay-agent
     registry:
-      address: zookeeper://10.168.1.110:2181
+      address: zookeeper://127.0.0.1:2181
     scan: org.yeepay.agent
   freemarker:
     cache: false
