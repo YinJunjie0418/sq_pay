@@ -23,7 +23,7 @@
                 <div class="layui-input-inline">
                   <select name="system" id="system" lay-search="">
                     <option value="-99">所属系统</option>
-                    <option value="1">YeePay中台</option>
+                    <option value="1">GPay中台</option>
                     <option value="2">商户系统</option>
                     <option value="3">代理商系统</option>
                   </select>
@@ -72,7 +72,7 @@ layui.use(['admin', 'table', 'util'], function(){
 
   var tplSystem = function(d){
     if(d.system == 1) {
-      return "<span style='color: green'>YeePay中台</span>";
+      return "<span style='color: green'>GPay中台</span>";
     }else if(d.system == 2) {
       return "<span style='color: blue'>商户系统</span>";
     }else if(d.system == 3) {

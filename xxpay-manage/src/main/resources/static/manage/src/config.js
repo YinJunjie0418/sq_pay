@@ -18,7 +18,7 @@ layui.define(['laytpl', 'layer', 'element', 'util'], function(exports){
     ,baseUrl: '/api'
     ,baseLocal: '/manage/start/index.html#/'
 
-    ,name: 'YeePay中台'
+    ,name: 'GPay中台'
     ,tableName: 'layuiAdmin' //本地存储表名
     ,MOD_NAME: 'admin' //模块事件名
 
