@@ -4,7 +4,7 @@
 #也可以作为启动java程序的独立脚本来使用。
 #
 #JDK所在路径
-JAVA_HOME="/usr/local/jdk/jdk1.8.0_121"
+JAVA_HOME="/usr/java/jdk1.8.0_171"
 
 #Java程序所在的目录（classes的上一级目录）
 APP_HOME=/home/yeepay/service/yeepay-pay-1.0.0
