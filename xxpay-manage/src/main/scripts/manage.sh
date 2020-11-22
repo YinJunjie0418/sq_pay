@@ -19,8 +19,8 @@ for i in "$APP_HOME"/lib/*.jar; do
 done
 
 #java虚拟机启动参数
-JAVA_OPTS="-Xmx2048m -XX:MetaspaceSize=512m -XX:MaxMetaspaceSize=768m -Xss2m"
-
+#JAVA_OPTS="-Xmx2048m -XX:MetaspaceSize=512m -XX:MaxMetaspaceSize=768m -Xss2m"
+JAVA_OPTS="-Xmx128m"
 
 ###################################
 #(函数)判断程序是否已启动
