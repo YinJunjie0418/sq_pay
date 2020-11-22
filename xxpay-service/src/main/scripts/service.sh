@@ -65,7 +65,7 @@ start() {
       echo "warn: $APP_MAINCLASS already started! (pid=$psid)"
       echo "================================"
    else
-      echo -n "Starting $APP_MAINCLASS ... $1"
+      echo -n "Starting $APP_MAINCLASS ... $1 canshu"
       # -DlogFn=active 指的是生产日志文件名为active
       nohup $JAVA_HOME/bin/java $JAVA_OPTS -classpath $CLASSPATH $APP_MAINCLASS >/dev/null 2>nohup.out &
       checkpid
