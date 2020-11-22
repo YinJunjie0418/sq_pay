@@ -67,7 +67,7 @@ start() {
    else
       echo -n "ENV $J_ENV Starting $APP_MAINCLASS ... "
       # -DlogFn=active 指的是生产日志文件名为active
-      nohup $JAVA_HOME/bin/java $JAVA_OPTS --spring.profiles.active=$J_ENV -classpath $CLASSPATH $APP_MAINCLASS >/dev/null 2>nohup.out &
+      nohup $JAVA_HOME/bin/java $JAVA_OPTS  -classpath $CLASSPATH $APP_MAINCLASS --spring.profiles.active=$J_ENV >/dev/null 2>nohup.out &
       checkpid
       if [ $psid -ne 0 ]; then
          echo "(pid=$psid) [OK]"
