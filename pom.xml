@@ -11,14 +11,14 @@
     <description>yeepay</description>
 
     <modules>
-        <module>yeepay-core</module>
-        <module>yeepay-generator</module>
-        <module>yeepay-merchant</module>
-        <module>yeepay-agent</module>
-        <module>yeepay-pay</module>
-        <module>yeepay-service</module>
-        <module>yeepay-task</module>
-        <module>yeepay-manage</module>
+        <module>xxpay-core</module>
+        <module>xxpay-generator</module>
+        <module>xxpay-merchant</module>
+        <module>xxpay-agent</module>
+        <module>xxpay-pay</module>
+        <module>xxpay-service</module>
+        <module>xxpay-task</module>
+        <module>xxpay-manage</module>
     </modules>
 
     <parent>
