@@ -337,6 +337,7 @@ public class AlipayPaymentService extends BasePayment {
         model.setSubject(payOrder.getSubject());
         model.setTotalAmount(AmountUtil.convertCent2Dollar(payOrder.getAmount().toString()));
         model.setBody(payOrder.getBody());
+        model.setStoreId("xxxxx");
         // 获取objParams参数
         String objParams = payOrder.getExtra();
         if (StringUtils.isNotEmpty(objParams)) {
