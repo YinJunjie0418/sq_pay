@@ -7,7 +7,7 @@
 JAVA_HOME="/usr/java/jdk1.8.0_171"
 
 #Java程序所在的目录（classes的上一级目录）
-APP_HOME=/home/yeepay/service/yeepay-task-1.0.0
+APP_HOME=/root/pay/service/yeepay-task-1.0.0
 
 #需要启动的Java主程序（main方法类）
 APP_MAINCLASS=org.yeepay.task.YeePayTaskApplication
