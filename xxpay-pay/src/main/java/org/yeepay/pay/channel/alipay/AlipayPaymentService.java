@@ -6,7 +6,6 @@ import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.domain.*;
-import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.request.*;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import org.apache.commons.lang3.ObjectUtils;
@@ -410,22 +409,6 @@ public class AlipayPaymentService extends BasePayment {
         String payOrderId = payOrder.getPayOrderId();
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
         AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
-
-
-        String asc = "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKNk8tTA2jquaiTSX41Smmh91q/Kh3b/BRlzghVlNy5IcaoEaoh/9AmpZfT2d8MFB0uwu8UxVRNUxw7URSdNlT0iQQf01cr476dxs2eo6S5BtLGt7zjahKZBxxoKZYaIE1hXjPTXmDXjhMcW0I7vzP5VxyDQos75Mm5UZLwLrN2HAgMBAAECgYAJUmoUP0h0Dp1ZqnLvIiZTDdLgxqJB5LzKve9O/y5Nwq5Rb90QGpS2tGZvulwM0U2gQN4FmxHqf2y36N5lJqT795Bug5WdK9P2nO7cYjIf0FA5R3ncretZwoU+HvQVoUXir93KkyZuXSlWYBwK6fGthyH1eCdfo7q7sq1R+y7jQQJBAM+JHNV0Raweb6zAFi8aQuNjSndwlSM0MzsGV4dD3vEdI3Nq30Ekeo/uom/DlfXxTMU1PJvjXSLGIWVHUE6c4aECQQDJjPvlYVUADlRCSDJAMTzzpJ58mIJ0sX1fsSx8i2WhifZULoPkkrZbNPN2V3au6gobLuonrmkREv1YwlBisb4nAkEAyktyqbZ+u3mnjZJnjV5h2NhOHALHvNsDHQPfieBkjk7C4ZxJJmxyc54/BAZ4RJYDKS/tdl63yE+s+dX7t8VAQQJAC/ERf667pYwzy9WRPKJuNRVc2o8Cs71Ma14I/7wWonKVKLm00NcsfMzvW+SkwIpXXPLzprQ7v2o7noWs05wqYwJAKzb7HxtAWDL9lXw0AtfO/bYtNQt5QNHZnZcVZxZm36G0/2jX0Ho8X5Ox2i7+A1HZQsExXyhS7dIvxBNUdF9+qg==";
-        try {
-            _log.info("###### 测试1 ######" + AlipayConfig.SIGNTYPE);
-            _log.info("###### 测试1 ######" + AlipaySignature.rsaSign("asc", asc, "UTF-8", "RSA2"));
-            _log.info("###### 测试1 ######" + AlipaySignature.rsaSign("asc", asc, "UTF-8", "RSA2"));
-            _log.info("###### 测试2 ######" + AlipaySignature.rsaSign("asc", asc, "UTF-8", "RSA"));
-            _log.info("###### 测试2 ######" + AlipaySignature.rsaSign("asc", asc, "UTF-8", "RSA"));
-
-        } catch (Exception e) {
-            _log.info("###### 测试3 ######" );
-            _log.error(e, "");
-
-        }
-
         AlipayTradePrecreateRequest alipay_request = new AlipayTradePrecreateRequest();
         // 封装请求支付信息
         AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();
