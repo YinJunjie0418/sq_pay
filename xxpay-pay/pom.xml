@@ -222,7 +222,6 @@
             <version>1.0</version>
             <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/yeepay-cfca-PKIBASE.jar</systemPath>
         </dependency>
-
     </dependencies>
 
     <profiles>
