@@ -83,7 +83,7 @@ public class AlipayPaymentService extends BasePayment {
         String channelOrderNo = payOrder.getChannelOrderNo();
         _log.info("{}开始查询支付宝通道订单,payOrderId={}", logPrefix, payOrderId);
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
-        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), "RSA2");
         AlipayTradeQueryRequest alipay_request = new AlipayTradeQueryRequest();
         // 商户订单号，商户网站订单系统中唯一订单号，必填
         AlipayTradeQueryModel model=new AlipayTradeQueryModel();
@@ -133,7 +133,7 @@ public class AlipayPaymentService extends BasePayment {
         String logPrefix = "【支付宝WAP支付下单】";
         String payOrderId = payOrder.getPayOrderId();
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
-        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), "RSA2");
         AlipayTradeWapPayRequest alipay_request = new AlipayTradeWapPayRequest();
         // 封装请求支付信息
         AlipayTradeWapPayModel model=new AlipayTradeWapPayModel();
@@ -204,7 +204,7 @@ public class AlipayPaymentService extends BasePayment {
         String logPrefix = "【支付宝PC支付下单】";
         String payOrderId = payOrder.getPayOrderId();
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
-        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), "RSA2");
         AlipayTradePagePayRequest alipay_request = new AlipayTradePagePayRequest();
         // 封装请求支付信息
         AlipayTradePagePayModel model=new AlipayTradePagePayModel();
@@ -276,7 +276,7 @@ public class AlipayPaymentService extends BasePayment {
         String logPrefix = "【支付宝APP支付下单】";
         String payOrderId = payOrder.getPayOrderId();
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
-        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), "RSA2");
         AlipayTradeAppPayRequest alipay_request = new AlipayTradeAppPayRequest();
         // 封装请求支付信息
         AlipayTradeAppPayModel model = new AlipayTradeAppPayModel();
@@ -329,7 +329,7 @@ public class AlipayPaymentService extends BasePayment {
         String logPrefix = "【支付宝当面付之扫码支付下单】";
         String payOrderId = payOrder.getPayOrderId();
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
-        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), "RSA2");
         AlipayTradePrecreateRequest alipay_request = new AlipayTradePrecreateRequest();
         // 封装请求支付信息
         AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();

@@ -20,7 +20,7 @@ public class AlipayConfig {
     private String alipayAccount;   // 支付宝账号
     private String reqUrl;          // 请求网关地址
     // RSA2
-    public static String SIGNTYPE = "RSA";
+    public static String SIGNTYPE = "RSA2";
     // 编码
     public static String CHARSET = "UTF-8";
     // 返回格式
