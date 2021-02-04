@@ -493,7 +493,7 @@ public class AlipayPaymentService extends BasePayment {
         String logPrefix = "【支付宝当面付之H5支付下单】";
         String payOrderId = payOrder.getPayOrderId();
         AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
-        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), "RSA2");
         AlipayTradePrecreateRequest alipay_request = new AlipayTradePrecreateRequest();
         // 封装请求支付信息
         AlipayTradePrecreateModel model=new AlipayTradePrecreateModel();
