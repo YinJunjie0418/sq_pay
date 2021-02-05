@@ -410,6 +410,7 @@ public class PaymentController extends BaseController {
             if(StringUtils.isBlank(openId)) {
                 JSONObject param = new JSONObject();
                 param.put("mchId", mchId);
+                param.put("price", price);
                 param.put("appId", appId);
                 param.put("codeId", codeId);
 
