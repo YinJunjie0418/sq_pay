@@ -334,6 +334,7 @@ public class PaymentController extends BaseController {
             JSONObject param = JSON.parseObject(p);
             mchIdStr = param.getString("mchId");
             appId = param.getString("appId");
+            priceStr = param.getString("price");
             codeIdStr = param.getString("codeId");
             //passageId = param.getString("passageId");
         }
