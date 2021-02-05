@@ -41,8 +41,8 @@ public class MchBillScheduled {
     @Value("${config.mchBillPath}")
     private String mchBillPath;
 
-    //@Scheduled(cron="0 0/1 * * * ?") // 每分钟执行一次
-    @Scheduled(cron="0 45 10 ? * *")   // 每日10:45执行
+    @Scheduled(cron="0 0/1 * * * ?") // 每分钟执行一次
+//    @Scheduled(cron="0 45 10 ? * *")   // 每日10:45执行
     public void buildMchBillTask() {
         _log.info("生成商户对账文件,开始...");
 
