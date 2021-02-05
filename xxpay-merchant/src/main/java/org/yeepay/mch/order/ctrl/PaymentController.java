@@ -312,6 +312,188 @@ public class PaymentController extends BaseController {
         return "payment/qrcode";
     }
 
+    @RequestMapping("/qrcode_custom")
+    public String openPaymentCustom(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
+        String ua = request.getHeader("User-Agent");
+        _log.info("scan qrcode, ua={}", ua);
+        if(StringUtils.isBlank(ua)) {
+            // 无法识别扫码客户端
+            model.put("errMsg", RetEnum.RET_MCH_UA_NOT_EXIST);
+            return PAGE_COMMON_ERROR;
+        }
+
+        String mchIdStr = request.getParameter("mchId");
+        String priceStr  = request.getParameter("price");
+        String appId = request.getParameter("appId");
+        String codeIdStr = request.getParameter("codeId");
+        //String passageId = request.getParameter("passageId");
+        // 在微信跳转时,传多个参数丢失,暂时用此办法解决
+        String p = request.getParameter("p");
+        if(StringUtils.isNotBlank(p)) {
+            p = new String(MyBase64.decode(p));
+            JSONObject param = JSON.parseObject(p);
+            mchIdStr = param.getString("mchId");
+            appId = param.getString("appId");
+            codeIdStr = param.getString("codeId");
+            //passageId = param.getString("passageId");
+        }
+
+        // 校验参数
+        if(!NumberUtils.isDigits(mchIdStr) || !NumberUtils.isDigits(codeIdStr)) {
+            model.put("errMsg", RetEnum.RET_COMM_PARAM_ERROR);
+            return PAGE_COMMON_ERROR;
+        }
+        Long mchId = Long.parseLong(mchIdStr);
+        Double price = Double.parseDouble(priceStr);
+        Long codeId = Long.parseLong(codeIdStr);
+        MchInfo mchInfo = rpcCommonService.rpcMchInfoService.findByMchId(mchId);
+        MchApp mchApp = rpcCommonService.rpcMchAppService.findByMchIdAndAppId(mchId, appId);
+        MchQrCode mchQrCode = rpcCommonService.rpcMchQrCodeService.findById(codeId);
+
+        // 商户相关信息不存在
+        if(mchInfo == null || mchApp == null || mchQrCode == null) {
+            model.put("errMsg", RetEnum.RET_MCH_CONFIG_NOT_EXIST);
+            return PAGE_COMMON_ERROR;
+        }
+
+        // 相关状态是否正常
+        if(MchConstant.PUB_YES != mchInfo.getStatus().byteValue() ||
+                MchConstant.PUB_YES != mchApp.getStatus().byteValue() ||
+                MchConstant.PUB_YES != mchQrCode.getStatus()) {
+            model.put("errMsg", RetEnum.RET_MCH_STATUS_CLOSE);
+            return PAGE_COMMON_ERROR;
+        }
+
+        // 获取商户配置的扫码支付渠道
+        String channels = mchQrCode.getChannels();
+        JSONArray channelArray = JSONArray.parseArray(channels);
+        if(StringUtils.isBlank(channels) || CollectionUtils.isEmpty(channelArray)) {
+            // 商户没有配置扫码支付渠道
+            model.put("errMsg", RetEnum.RET_MCH_QR_CHANNEL_NOT_EXIST);
+            return PAGE_COMMON_ERROR;
+        }
+
+        String channelId = getChannelId(ua);
+        //channelId = "ALIPAY_WAP";
+        if(channelId == null) {
+            model.put("errMsg", RetEnum.RET_MCH_UA_NOT_SUPPORT);
+            return PAGE_COMMON_ERROR;
+        }
+
+        // 判断商户是否配置了该扫码支付渠道
+        boolean flag = false;
+        String productId = null;
+        for(int i = 0; i < channelArray.size(); i++) {
+            JSONObject c = channelArray.getJSONObject(i);
+            String ci = c.getString("channelId");
+            if(channelId.equalsIgnoreCase(ci)) {
+                flag = true;
+                productId = c.getString("productId");
+                break;
+            }
+        }
+        if(!flag) {
+            // 商户没有配置对应的扫码支付渠道
+            model.put("errMsg", RetEnum.RET_MCH_QR_UA_NOT_CONFIG);
+            return PAGE_COMMON_ERROR;
+        }
+        if(StringUtils.isBlank(productId)) {
+            // 没有配置产品ID
+            model.put("errMsg", RetEnum.RET_MCH_QR_UA_NOT_CONFIG);
+            return PAGE_COMMON_ERROR;
+        }
+
+        String openId = request.getParameter("openId");
+
+        // 如果是微信公众号支付,需要获取openId
+        if(PayConstant.PAY_CHANNEL_WX_JSAPI.equalsIgnoreCase(channelId)) {
+            if(StringUtils.isBlank(openId)) {
+                JSONObject param = new JSONObject();
+                param.put("mchId", mchId);
+                param.put("appId", appId);
+                param.put("codeId", codeId);
+
+                MchPayPassage mchPayPassage = rpcCommonService.rpcMchPayPassageService.findByMchIdAndProductId(mchId, Integer.parseInt(productId));
+                if(mchPayPassage == null) {
+                    // 商户没有配置扫码支付渠道
+                    model.put("errMsg", RetEnum.RET_MCH_PASSAGE_NOT_EXIST);
+                    return PAGE_COMMON_ERROR;
+                }
+
+                if(mchPayPassage.getIfMode() == 1) {
+                    // 支付通道ID
+                    Integer payPassageId = mchPayPassage.getPayPassageId();
+                    List<PayPassageAccount> payPassageAccountList = rpcCommonService.rpcPayPassageAccountService.selectAllByPassageId(payPassageId);
+                    if(CollectionUtils.isEmpty(payPassageAccountList)) {
+                        model.put("errMsg", RetEnum.RET_MCH_PASSAGE_NOT_EXIST);
+                        return PAGE_COMMON_ERROR;
+                    }
+                    // 需要根据风控规则得到子账户号
+                    PayPassageAccount payPassageAccount = payPassageAccountList.get(0);
+
+                    JSONObject paramObj = JSON.parseObject(payPassageAccount.getParam());
+                    String wxAppId = paramObj.getString("appId");
+                    String wxAppSecret = paramObj.getString("appSecret");
+                    //param.put("passageId", payChannel.getPassageId());
+                    param.put("wxAppId", wxAppId);
+                    param.put("wxAppSecret", wxAppSecret);
+
+                }else {
+                    // 轮询接口
+
+                }
+
+                /*if(MchConstant.MCH_TYPE_PLATFORM == mchInfo.getType()) {
+                    List<PayChannel> payChannelList = rpcCommonService.rpcPayChannelService.selectByMch(mchId, PayConstant.PAY_CHANNEL_WX_JSAPI);
+                    if(CollectionUtils.isEmpty(payChannelList)) {
+                        // 商户没有配置扫码支付渠道
+                        model.put("errMsg", RetEnum.RET_MCH_PASSAGE_NOT_EXIST);
+                        return PAGE_COMMON_ERROR;
+                    }
+                    PayChannel payChannel = payChannelList.get(0);
+                    String configParam = payChannel.getParam();
+                    JSONObject paramObj = JSON.parseObject(configParam);
+                    String wxAppId = paramObj.getString("appId");
+                    String wxAppSecret = paramObj.getString("appSecret");
+                    param.put("passageId", payChannel.getPassageId());
+                    param.put("wxAppId", wxAppId);
+                    param.put("wxAppSecret", wxAppSecret);
+                }else if(MchConstant.MCH_TYPE_PRIVATE == mchInfo.getType()) {
+                    MchChannel mchChannel = rpcCommonService.rpcMchChannelService.findByMACId(mchId, appId, PayConstant.PAY_CHANNEL_WX_JSAPI);
+                    String configParam = mchChannel.getParam();
+                    JSONObject paramObj = JSON.parseObject(configParam);
+                    String wxAppId = paramObj.getString("appId");
+                    String wxAppSecret = paramObj.getString("appSecret");
+
+                    param.put("wxAppId", wxAppId);
+                    param.put("wxAppSecret", wxAppSecret);
+                }*/
+
+                String str = MyBase64.encode(param.toJSONString().getBytes());
+
+                String redirectUrl = String.format("%s/payment/qrcode_custom?p=%s", mainConfig.getMchApiUrl(), str);
+                String url = String.format("%s/payment/wx_openid_redirect?wx=%s&redirectUrl=%s", mainConfig.getMchApiUrl(), str, redirectUrl);
+                try {
+                    response.sendRedirect(url);
+                } catch (IOException e) {
+                    _log.error("", e);
+                }
+                return null;
+            }
+        }
+
+        // 设置支付页面所需参数
+        model.put("mchId", mchId);
+        model.put("price", price);
+        model.put("appId", appId);
+        model.put("codeId", codeId);
+        model.put("channelId", channelId);
+        model.put("productId", productId);
+        model.put("codeName", mchQrCode.getCodeName());
+        model.put("openId", openId == null ? "" : openId);
+        return "payment/qrcode_custom";
+    }
+
     /**
      * 统一扫码支付
      * @param request
