@@ -171,33 +171,7 @@
     </div>
 
     <div class="jianpan">
-        <div class="xybank">
-            <#--<img src="/images/xybank.png">
-            <span>提供服务</span>-->
-        </div>
-        <table>
-            <tr>
-                <td class="commC">1</td>
-                <td class="commC">2</td>
-                <td class="commC">3</td>
-                <td class="del">x</td>
-            </tr>
-            <tr>
-                <td class="commC">4</td>
-                <td class="commC">5</td>
-                <td class="commC">6</td>
-                <td class="fukuan" rowspan="3"><span>付款</span></td>
-            </tr>
-            <tr>
-                <td class="commC">7</td>
-                <td class="commC">8</td>
-                <td class="commC">9</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="commC">0</td>
-                <td class="commC">.</td>
-            </tr>
-        </table>
+        <div class="fukuan"><span>付款</span></div>
     </div>
 
 </div>
@@ -221,20 +195,6 @@
 
     })
     var html = '';
-    $('.commC').click(function(){
-        var curVal = $.trim($(this).html());
-        html+=curVal;
-        $('.fukuan').addClass('darkB').removeClass('lightB');
-        html = html.replace(/[^\d.]/g, "").
-        //只允许一个小数点
-        replace(/^\./g, "").replace(/\.{2,}/g, ".").
-        //只能输入小数点后两位
-        replace(".", "$#$").replace(/\./g, "").replace("$#$", ".").replace(/^(\-)*(\d+)\.(\d\d).*$/, '$1$2.$3')
-
-        $('.shuru').val(html);
-    })
-
-    // if($('.fukuan').hasClass('darkB')){
 
     $('.fukuan').click(function(){
         console.log(3333)
@@ -248,19 +208,6 @@
             paymentOrder(curS);
         }
 
-    })
-    // }
-
-    $('.del').click(function(){
-        var curS = $.trim($('.shuru').val());
-        if(curS && curS.length){
-            curS = curS.substring(0,curS.length-1);
-            $('.shuru').val(curS);
-            $('.shuru').focus().css('outline','none');
-            html='';
-        }else{
-            $('.fukuan').addClass('lightB').removeClass('darkB');
-        }
     })
 
     var flag = false;
