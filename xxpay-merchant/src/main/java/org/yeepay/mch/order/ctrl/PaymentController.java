@@ -491,7 +491,7 @@ public class PaymentController extends BaseController {
         model.put("productId", productId);
         model.put("codeName", mchQrCode.getCodeName());
         model.put("openId", openId == null ? "" : openId);
-        return "payment/qrcode_custom";
+        return "payment/qrcodecustom";
     }
 
     /**
