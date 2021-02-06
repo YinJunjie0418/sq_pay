@@ -520,8 +520,9 @@ public class PayOrderController extends BaseController {
             if(result != 1) {
                 return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, "支付中心下单失败", null, PayEnum.ERR_0010.getCode(), "DB插入支付订单失败"));
             }
+            _log.info("{}创建支付订单,结果:{}", logPrefix, po.getString("authCode"));
             // 执行支付
-            JSONObject retObj = paymentInterface.micropay(payOrder, payContext.getString("authCode"));
+            JSONObject retObj = paymentInterface.micropay(payOrder, po.getString("authCode"));
 
             if(retObj.get(PayConstant.RETURN_PARAM_RETCODE).equals(PayConstant.RETURN_VALUE_SUCCESS)) {
                 retObj.put("payOrderId", payOrder.getPayOrderId());
