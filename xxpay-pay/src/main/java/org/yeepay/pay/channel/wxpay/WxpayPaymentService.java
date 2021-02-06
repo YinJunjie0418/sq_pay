@@ -2,6 +2,7 @@ package org.yeepay.pay.channel.wxpay;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
 import com.github.binarywang.wxpay.bean.request.WxPayMicropayRequest;
 import com.github.binarywang.wxpay.bean.request.WxPayOrderReverseRequest;
 import com.github.binarywang.wxpay.bean.request.WxPayUnifiedOrderRequest;
@@ -14,11 +15,13 @@ import com.github.binarywang.wxpay.exception.WxPayException;
 import com.github.binarywang.wxpay.service.WxPayService;
 import com.github.binarywang.wxpay.service.impl.WxPayServiceImpl;
 import com.github.binarywang.wxpay.util.SignUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.yeepay.core.common.constant.PayConstant;
 import org.yeepay.core.common.util.MyLog;
 import org.yeepay.core.entity.PayOrder;
 import org.yeepay.pay.channel.BasePayment;
+import org.yeepay.pay.mq.BaseNotify4MchPay;
 
 import java.io.File;
 import java.util.HashMap;
@@ -38,6 +41,9 @@ public class WxpayPaymentService extends BasePayment {
     public String getChannelName() {
         return PayConstant.CHANNEL_NAME_WXPAY;
     }
+
+    @Autowired
+    public BaseNotify4MchPay baseNotify4MchPay;
 
     @Override
     public JSONObject pay(PayOrder payOrder) {
@@ -176,6 +182,17 @@ public class WxpayPaymentService extends BasePayment {
                             WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
                             JSONObject payInfo = new JSONObject();
                             if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
+                                // 修改支付成功状态
+                                payOrder.setMchOrderNo(wxPayOrderQueryResult.getTransactionId());
+                                Boolean success = paySuccess(payOrder);
+                                if (success) {
+                                    _log.error("{}更新支付状态成功,将payOrderId={},更新payStatus={}成功", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                                } else {
+                                    _log.error("{}更新支付状态失败,将payOrderId={},更新payStatus={}失败", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                                    map.put(PayConstant.RESPONSE_RESULT, WxPayNotifyResponse.fail("处理订单失败"));
+                                    return map;
+                                }
+
                                 payInfo.put("transactionId", wxPayOrderQueryResult.getTransactionId());
                                 map.put("payParams", payInfo);
                                 break;
@@ -193,6 +210,7 @@ public class WxpayPaymentService extends BasePayment {
                             }
                             map.put("errDes", e.getErrCodeDes());
                             map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                            break;
                         } catch (WxPayException eq) {
                             map.put("errDes", eq.getErrCodeDes());
                             map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
@@ -210,6 +228,19 @@ public class WxpayPaymentService extends BasePayment {
             map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
         }
         return map;
+    }
+
+    private Boolean paySuccess(PayOrder payOrder) {
+
+        int updatePayOrderRows = rpcCommonService.rpcPayOrderService.updateStatus4Success(payOrder.getPayOrderId(), payOrder.getMchOrderNo());
+        if (updatePayOrderRows != 1) {
+            return false;
+        }
+        payOrder.setStatus(PayConstant.PAY_STATUS_SUCCESS);
+        // 业务系统后端通知
+        baseNotify4MchPay.doNotify(payOrder, true);
+        _log.info("====== 完成处理微信支付回调通知 ======");
+        return true;
     }
 
     @Override
