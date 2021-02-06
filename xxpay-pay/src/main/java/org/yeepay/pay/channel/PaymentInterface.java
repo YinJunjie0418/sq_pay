@@ -31,4 +31,5 @@ public interface PaymentInterface {
      */
     Long getAmount(PayOrder payOrder);
 
+    JSONObject micropay(PayOrder payOrder, String authCode);
 }

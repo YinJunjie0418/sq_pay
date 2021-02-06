@@ -458,4 +458,84 @@ public class PayOrderController extends BaseController {
         return payOrder;
     }
 
+
+    /**
+     * 付款码支付接口:
+     * 1)先验证接口参数以及签名信息
+     * 2)验证通过创建支付订单
+     * 3)根据商户选择渠道,调用支付服务进行下单
+     * 4)返回下单数据
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/api/micropay/create_order")
+    @ResponseBody
+    public String micropayOrder(HttpServletRequest request, HttpServletResponse response) {
+        _log.info("###### 开始接收商户付款码支付请求 ######");
+        String logPrefix = "【商户付款码支付】";
+        try {
+            JSONObject po = getJsonParam(request);
+            _log.info("{}请求参数:{}", logPrefix, po);
+            JSONObject payContext = new JSONObject();
+            PayOrder payOrder = null;
+            // 验证参数有效性
+            Object object = validateParams(po, payContext, request);
+            if (object instanceof String) {
+                _log.info("{}参数校验不通过:{}", logPrefix, object);
+                return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, object.toString(), null, PayEnum.ERR_0014.getCode(), object.toString()));
+            }
+            if (object instanceof PayOrder) payOrder = (PayOrder) object;
+            if(payOrder == null) return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, "支付中心下单失败", null, PayEnum.ERR_0010.getCode(), "生成支付订单失败"));
+
+            String channelId = payOrder.getChannelId();
+            String channelName = channelId.substring(0, channelId.indexOf("_"));
+            try {
+                paymentInterface = (PaymentInterface) SpringUtil.getBean(channelName.toLowerCase() +  "PaymentService");
+            }catch (BeansException e) {
+                _log.error(e, "支付渠道类型[channelId="+channelId+"]实例化异常");
+                return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, "调用支付渠道失败", null, PayEnum.ERR_0010.getCode(), "支付渠道类型[channelId="+channelId+"]实例化异常"));
+            }
+            // 如果该通道重新定义了订单号,那么使用新的订单号
+            String orderId = paymentInterface.getOrderId(payOrder);
+            if(StringUtils.isNotBlank(orderId)) payOrder.setPayOrderId(orderId);
+            // 如果该通道重新设置订单金额，那么重写订单金额及分润
+            Long newAmount = paymentInterface.getAmount(payOrder);
+            if(newAmount != null) { // 通道实现了getAmount方法
+                if(newAmount == -1) {   // 表示当前金额不可用，需更换金额重新下单
+                    return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, "支付中心下单失败", null, PayEnum.ERR_0010.getCode(), "请更换金额重新下单"));
+                }else if(newAmount > 0) {
+                    payOrder.setAmount(newAmount);
+                    // 重新计算订单:渠道成本费用,代理商费用,商户入账,平台利润
+                    OrderCostFeeVO orderCostFeeVO = YeePayUtil.calOrderCostFeeAndIncome(newAmount, payOrder.getChannelRate(), payOrder.getAgentRate(), payOrder.getParentAgentRate(), payOrder.getMchRate());
+                    // 重新设置渠道成本及分润
+                    payOrder.setChannelCost(orderCostFeeVO.getChannelCostFee());
+                    payOrder.setPlatProfit(orderCostFeeVO.getPlatProfit());
+                    payOrder.setAgentProfit(orderCostFeeVO.getAgentProfit());
+                    payOrder.setParentAgentProfit(orderCostFeeVO.getParentAgentProfit());
+                    payOrder.setMchIncome(orderCostFeeVO.getMchIncome());
+                }
+            }
+            int result = rpcCommonService.rpcPayOrderService.createPayOrder(payOrder);
+            _log.info("{}创建支付订单,结果:{}", logPrefix, result);
+            if(result != 1) {
+                return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, "支付中心下单失败", null, PayEnum.ERR_0010.getCode(), "DB插入支付订单失败"));
+            }
+            // 执行支付
+            JSONObject retObj = paymentInterface.micropay(payOrder, payContext.getString("authCode"));
+
+            if(retObj.get(PayConstant.RETURN_PARAM_RETCODE).equals(PayConstant.RETURN_VALUE_SUCCESS)) {
+                retObj.put("payOrderId", payOrder.getPayOrderId());
+                // 使用StringEscapeUtils.unescapeJava去掉字符串中的转义符号(不采用,会导致json解析报错)
+                //return StringEscapeUtils.unescapeJava(YeePayUtil.makeRetData(retObj, payContext.getString("key")));
+                return YeePayUtil.makeRetData(retObj, payContext.getString("key"));
+            }else {
+                return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL,
+                        "调用支付渠道失败" + (retObj.get(PayConstant.RETURN_PARAM_RETMSG) == null ? "" : ("(" + retObj.get(PayConstant.RETURN_PARAM_RETMSG) + ")")),
+                        null, retObj.getString("errCode"), retObj.getString("errDes")));
+            }
+        }catch (Exception e) {
+            _log.error(e, "");
+            return YeePayUtil.makeRetFail(YeePayUtil.makeRetMap(PayConstant.RETURN_VALUE_FAIL, "支付中心系统异常", null, PayEnum.ERR_0010.getCode(), "请联系技术人员查看"));
+        }
+    }
 }
