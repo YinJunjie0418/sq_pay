@@ -169,7 +169,7 @@ public class WxpayPaymentService extends BasePayment {
                 if (e.getErrCode() == "USERPAYING") {
                     // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
                     for (int i = 10; i > 0; i--) {
-                        Thread.sleep(3);
+                        Thread.sleep(3000);
                         try {
                             WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
                             JSONObject payInfo = new JSONObject();
@@ -181,7 +181,7 @@ public class WxpayPaymentService extends BasePayment {
                                 if (i == 1){
                                     map.put("errDes", e.getErrCodeDes());
                                     map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
-                                } 
+                                }
                             }
                         } catch (WxPayException eq) {
                             map.put("errDes", eq.getErrCodeDes());
