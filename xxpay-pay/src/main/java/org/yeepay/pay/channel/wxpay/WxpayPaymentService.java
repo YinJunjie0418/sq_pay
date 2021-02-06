@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.github.binarywang.wxpay.bean.request.WxPayMicropayRequest;
 import com.github.binarywang.wxpay.bean.request.WxPayUnifiedOrderRequest;
 import com.github.binarywang.wxpay.bean.result.WxPayMicropayResult;
+import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
 import com.github.binarywang.wxpay.bean.result.WxPayUnifiedOrderResult;
 import com.github.binarywang.wxpay.config.WxPayConfig;
 import com.github.binarywang.wxpay.constant.WxPayConstants;
@@ -158,81 +159,40 @@ public class WxpayPaymentService extends BasePayment {
 
                 JSONObject payInfo = new JSONObject();
                 payInfo.put("transactionId", wxPayMicropayResult.getTransactionId());
-                payInfo.put("returnCode", wxPayMicropayResult.getReturnCode());
-                payInfo.put("returnMsg", wxPayMicropayResult.getReturnMsg());
-                payInfo.put("resultCode", wxPayMicropayResult.getResultCode());
-                payInfo.put("errCode", wxPayMicropayResult.getErrCode());
-                payInfo.put("errCodeDes", wxPayMicropayResult.getErrCodeDes());
                 map.put("payParams", payInfo);
-//                switch (tradeType) {
-//                    case PayConstant.WxConstant.TRADE_TYPE_NATIVE : {
-//                        JSONObject payInfo = new JSONObject();
-//                        payInfo.put("prepayId", wxPayUnifiedOrderResult.getPrepayId());
-//                        payInfo.put("codeUrl", wxPayUnifiedOrderResult.getCodeURL()); // 二维码支付链接
-//                        payInfo.put("codeImgUrl", payConfig.getPayUrl() + "/qrcode_img_get?url=" + wxPayUnifiedOrderResult.getCodeURL() + "&widht=200&height=200");
-//                        payInfo.put("payMethod", PayConstant.PAY_METHOD_CODE_IMG);
-//                        map.put("payParams", payInfo);
-//                        break;
-//                    }
-//                    case PayConstant.WxConstant.TRADE_TYPE_APP : {
-//                        Map<String, String> payInfo = new HashMap<>();
-//                        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
-//                        String nonceStr = String.valueOf(System.currentTimeMillis());
-//                        // APP支付绑定的是微信开放平台上的账号，APPID为开放平台上绑定APP后发放的参数
-//                        String wxAppId = wxPayConfig.getAppId();
-//                        Map<String, String> configMap = new HashMap<>();
-//                        // 此map用于参与调起sdk支付的二次签名,格式全小写，timestamp只能是10位,格式固定，切勿修改
-//                        String partnerId = wxPayConfig.getMchId();
-//                        configMap.put("prepayid", wxPayUnifiedOrderResult.getPrepayId());
-//                        configMap.put("partnerid", partnerId);
-//                        String packageValue = "Sign=WXPay";
-//                        configMap.put("package", packageValue);
-//                        configMap.put("timestamp", timestamp);
-//                        configMap.put("noncestr", nonceStr);
-//                        configMap.put("appid", wxAppId);
-//                        // 此map用于客户端与微信服务器交互
-//                        payInfo.put("sign", SignUtils.createSign(configMap, wxPayConfig.getMchKey(), null));
-//                        payInfo.put("prepayId", wxPayUnifiedOrderResult.getPrepayId());
-//                        payInfo.put("partnerId", partnerId);
-//                        payInfo.put("appId", wxAppId);
-//                        payInfo.put("package", packageValue);
-//                        payInfo.put("timeStamp", timestamp);
-//                        payInfo.put("nonceStr", nonceStr);
-//                        map.put("payParams", JSONObject.parseObject(JSON.toJSONString(payInfo)));
-//                        break;
-//                    }
-//                    case PayConstant.WxConstant.TRADE_TYPE_JSPAI : {
-//                        String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
-//                        String nonceStr = String.valueOf(System.currentTimeMillis());
-//                        Map<String, String>  payInfo = new HashMap<>(); // 如果用JsonObject会出现签名错误
-//                        payInfo.put("appId", wxPayUnifiedOrderResult.getAppid());
-//                        // 支付签名时间戳，注意微信jssdk中的所有使用timestamp字段均为小写。但最新版的支付后台生成签名使用的timeStamp字段名需大写其中的S字符
-//                        payInfo.put("timeStamp", timestamp);
-//                        payInfo.put("nonceStr", nonceStr);
-//                        payInfo.put("package", "prepay_id=" + wxPayUnifiedOrderResult.getPrepayId());
-//                        payInfo.put("signType", WxPayConstants.SignType.MD5);
-//                        payInfo.put("paySign", SignUtils.createSign(payInfo, wxPayConfig.getMchKey(), null));
-//                        // 签名以后在增加prepayId参数
-//                        payInfo.put("prepayId", wxPayUnifiedOrderResult.getPrepayId());
-//                        map.put("payParams",  JSONObject.parseObject(JSON.toJSONString(payInfo)));
-//                        break;
-//                    }
-//                    case PayConstant.WxConstant.TRADE_TYPE_MWEB : {
-//                        JSONObject payInfo = new JSONObject();
-//                        payInfo.put("prepayId", wxPayUnifiedOrderResult.getPrepayId());
-//                        payInfo.put("payUrl", wxPayUnifiedOrderResult.getMwebUrl()); // h5支付链接地址
-//                        map.put("payParams", payInfo);
-//                        break;
-//                    }
-//                }
             } catch (WxPayException e) {
                 _log.error(e, "下单失败");
                 //出现业务错误
                 _log.info("{}下单返回失败", logPrefix);
                 _log.info("err_code:{}", e.getErrCode());
                 _log.info("err_code_des:{}", e.getErrCodeDes());
-                map.put("errDes", e.getErrCodeDes());
-                map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                if (e.getErrCode() == "USERPAYING") {
+                    // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
+                    for (int i = 10; i > 0; i--) {
+                        Thread.sleep(3);
+                        try {
+                            WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
+                            JSONObject payInfo = new JSONObject();
+                            if (wxPayOrderQueryResult.getTradeState() == "SUCCESS") {
+                                payInfo.put("transactionId", wxPayOrderQueryResult.getTransactionId());
+                                map.put("payParams", payInfo);
+                            }
+                            if (wxPayOrderQueryResult.getTradeState() == "USERPAYING") {
+                                if (i == 1){
+                                    map.put("errDes", e.getErrCodeDes());
+                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                } 
+                            }
+                        } catch (WxPayException eq) {
+                            map.put("errDes", eq.getErrCodeDes());
+                            map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                            break;
+                        }
+                    }
+                } else {
+                    map.put("errDes", e.getErrCodeDes());
+                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                }
             }
         }catch (Exception e) {
             _log.error(e, "微信支付统一下单异常");
