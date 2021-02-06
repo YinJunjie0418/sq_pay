@@ -165,6 +165,17 @@ public class WxpayPaymentService extends BasePayment {
                 _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
 
                 JSONObject payInfo = new JSONObject();
+                // 修改支付成功状态
+                payOrder.setMchOrderNo(wxPayMicropayResult.getTransactionId());
+                Boolean success = paySuccess(payOrder);
+                if (success) {
+                    _log.error("{}更新支付状态成功,将payOrderId={},更新payStatus={}成功", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                } else {
+                    _log.error("{}更新支付状态失败,将payOrderId={},更新payStatus={}失败", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                    map.put(PayConstant.RESPONSE_RESULT, WxPayNotifyResponse.fail("处理订单失败"));
+                    return map;
+                }
+
                 payInfo.put("transactionId", wxPayMicropayResult.getTransactionId());
                 map.put("payParams", payInfo);
             } catch (WxPayException e) {
