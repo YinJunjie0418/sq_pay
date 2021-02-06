@@ -185,6 +185,8 @@ public class WxpayPaymentService extends BasePayment {
                 _log.info("err_code:{}", e.getErrCode());
                 _log.info("err_code_des:{}", e.getErrCodeDes());
                 if (e.getErrCode().equals("USERPAYING")) {
+                    int result = rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
+                    _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
                     // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
                     for (int i = 10; i > 0; i--) {
                         _log.info("{}轮询{}", logPrefix, i);
@@ -193,6 +195,8 @@ public class WxpayPaymentService extends BasePayment {
                             WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
                             JSONObject payInfo = new JSONObject();
                             if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
+                                map.put("payOrderId", payOrderId);
+
                                 // 修改支付成功状态
                                 payOrder.setMchOrderNo(wxPayOrderQueryResult.getTransactionId());
                                 Boolean success = paySuccess(payOrder);
