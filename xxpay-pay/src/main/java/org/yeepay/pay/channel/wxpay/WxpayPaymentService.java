@@ -3,6 +3,7 @@ package org.yeepay.pay.channel.wxpay;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.github.binarywang.wxpay.bean.request.WxPayMicropayRequest;
+import com.github.binarywang.wxpay.bean.request.WxPayOrderReverseRequest;
 import com.github.binarywang.wxpay.bean.request.WxPayUnifiedOrderRequest;
 import com.github.binarywang.wxpay.bean.result.WxPayMicropayResult;
 import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
@@ -179,12 +180,19 @@ public class WxpayPaymentService extends BasePayment {
                                 map.put("payParams", payInfo);
                                 break;
                             }
-                            if (wxPayOrderQueryResult.getTradeState().equals("USERPAYING")) {
-                                if (i == 1){
-                                    map.put("errDes", e.getErrCodeDes());
-                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
-                                }
+                            if (wxPayOrderQueryResult.getTradeState().equals("USERPAYING") && i > 1) {
+                                continue;
                             }
+
+                            WxPayOrderReverseRequest wxPayOrderReverseRequest = buildOrderReverseRequest(payOrder, wxPayConfig);
+                            try {
+                                _log.info("{}撤销单号{}", logPrefix, payOrder.getPayOrderId());
+                                wxPayService.reverseOrder(wxPayOrderReverseRequest);
+                            } catch (WxPayException eor) {
+                                // 撤销单失败
+                            }
+                            map.put("errDes", e.getErrCodeDes());
+                            map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                         } catch (WxPayException eq) {
                             map.put("errDes", eq.getErrCodeDes());
                             map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
@@ -311,6 +319,57 @@ public class WxpayPaymentService extends BasePayment {
 //        request.setTradeType(tradeType);
 //        request.setProductId(productId);
         request.setLimitPay(limitPay);
+//        request.setOpenid(openId);
+//        request.setSceneInfo(sceneInfo);
+        return request;
+    }
+
+    /**
+     * 构建微信撤销单请求数据
+     * @param payOrder
+     * @param wxPayConfig
+     * @return
+     */
+    WxPayOrderReverseRequest buildOrderReverseRequest(PayOrder payOrder, WxPayConfig wxPayConfig) {
+        String tradeType = wxPayConfig.getTradeType();
+        String payOrderId = payOrder.getPayOrderId();
+        Integer totalFee = payOrder.getAmount().intValue();// 支付金额,单位分
+        String deviceInfo = payOrder.getDevice();
+        String body = payOrder.getBody();
+        String detail = null;
+        String attach = null;
+        String outTradeNo = payOrderId;
+        String feeType = "CNY";
+        String spBillCreateIP = payOrder.getClientIp();
+        String timeStart = null;
+        String timeExpire = null;
+        String goodsTag = null;
+        String notifyUrl = payConfig.getNotifyUrl(getChannelName());
+        String productId = null;
+        if(tradeType.equals(PayConstant.WxConstant.TRADE_TYPE_NATIVE)) productId = System.currentTimeMillis()+"";
+        String limitPay = null;
+        String openId = null;
+        if(tradeType.equals(PayConstant.WxConstant.TRADE_TYPE_JSPAI)) openId = JSON.parseObject(payOrder.getExtra()).getString("openId");
+        String sceneInfo = null;
+        if(tradeType.equals(PayConstant.WxConstant.TRADE_TYPE_MWEB)) sceneInfo = JSON.parseObject(payOrder.getExtra()).getString("sceneInfo");
+        // 微信统一下单请求对象
+        WxPayOrderReverseRequest request = WxPayOrderReverseRequest.newBuilder().build();
+//        request.setDeviceInfo(deviceInfo);
+//        request.setAuthCode(authCode);
+//        request.setBody(body);
+//        request.setDetail(detail);
+//        request.setAttach(attach);
+        request.setOutTradeNo(outTradeNo);
+//        request.setFeeType(feeType);
+//        request.setTotalFee(totalFee);
+//        request.setSpbillCreateIp(spBillCreateIP);
+//        request.setTimeStart(timeStart);
+//        request.setTimeExpire(timeExpire);
+//        request.setGoodsTag(goodsTag);
+//        request.setNotifyURL(notifyUrl);
+//        request.setTradeType(tradeType);
+//        request.setProductId(productId);
+//        request.setLimitPay(limitPay);
 //        request.setOpenid(openId);
 //        request.setSceneInfo(sceneInfo);
         return request;
