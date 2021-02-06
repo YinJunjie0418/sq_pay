@@ -50,6 +50,10 @@ public abstract class BasePayment extends BaseService implements PaymentInterfac
         return null;
     }
 
+    public JSONObject micropay(PayOrder payOrder, String authCode) {
+        return null;
+    }
+
     /**
      * 获取三方支付配置信息
      * 如果是平台账户,则使用平台对应的配置,否则使用商户自己配置的渠道
