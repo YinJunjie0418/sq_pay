@@ -176,6 +176,7 @@ public class WxpayPaymentService extends BasePayment {
                             if (wxPayOrderQueryResult.getTradeState() == "SUCCESS") {
                                 payInfo.put("transactionId", wxPayOrderQueryResult.getTransactionId());
                                 map.put("payParams", payInfo);
+                                break;
                             }
                             if (wxPayOrderQueryResult.getTradeState() == "USERPAYING") {
                                 if (i == 1){
