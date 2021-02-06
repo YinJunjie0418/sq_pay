@@ -166,19 +166,20 @@ public class WxpayPaymentService extends BasePayment {
                 _log.info("{}下单返回失败", logPrefix);
                 _log.info("err_code:{}", e.getErrCode());
                 _log.info("err_code_des:{}", e.getErrCodeDes());
-                if (e.getErrCode() == "USERPAYING") {
+                if (e.getErrCode().equals("USERPAYING")) {
                     // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
                     for (int i = 10; i > 0; i--) {
+                        _log.info("{}轮询{}", logPrefix, i);
                         Thread.sleep(3000);
                         try {
                             WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
                             JSONObject payInfo = new JSONObject();
-                            if (wxPayOrderQueryResult.getTradeState() == "SUCCESS") {
+                            if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
                                 payInfo.put("transactionId", wxPayOrderQueryResult.getTransactionId());
                                 map.put("payParams", payInfo);
                                 break;
                             }
-                            if (wxPayOrderQueryResult.getTradeState() == "USERPAYING") {
+                            if (wxPayOrderQueryResult.getTradeState().equals("USERPAYING")) {
                                 if (i == 1){
                                     map.put("errDes", e.getErrCodeDes());
                                     map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
