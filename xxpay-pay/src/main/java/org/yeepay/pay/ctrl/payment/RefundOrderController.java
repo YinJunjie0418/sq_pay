@@ -213,10 +213,10 @@ public class RefundOrderController extends BaseController {
             errorMessage = "request params[currency] error.";
             return errorMessage;
         }
-        if(StringUtils.isBlank(channelUser)) {
-            errorMessage = "request params[channelUser] error.";
-            return errorMessage;
-        }
+//        if(StringUtils.isBlank(channelUser)) {
+//            errorMessage = "request params[channelUser] error.";
+//            return errorMessage;
+//        }
 
         // 签名信息
         if (StringUtils.isEmpty(sign)) {
@@ -269,7 +269,7 @@ public class RefundOrderController extends BaseController {
             return errorMessage;
         }
         // 订单必须是成功或处理完成状态才可以退款
-        if(payOrder.getStatus() != PayConstant.PAY_STATUS_SUCCESS && payOrder.getStatus() != PayConstant.PAY_STATUS_COMPLETE) {
+        if(payOrder.getStatus() != PayConstant.PAY_STATUS_SUCCESS && payOrder.getStatus() != PayConstant.PAY_STATUS_COMPLETE && payOrder.getStatus() != PayConstant.PAY_STATUS_REFUND) {
             errorMessage = "payOrder can not refund.";
             return errorMessage;
         }
