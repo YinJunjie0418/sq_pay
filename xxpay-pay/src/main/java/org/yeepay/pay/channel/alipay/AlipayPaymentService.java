@@ -766,7 +766,7 @@ public class AlipayPaymentService extends BasePayment {
             rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
             _log.info("{}生成付款码下单数据,tradeNo={},code={}", logPrefix, alipayTradePayResponse.getTradeNo(), alipayTradePayResponse.getCode());
             payOrder.setMchOrderNo(alipayTradePayResponse.getTradeNo());
-            if (alipayTradePayResponse.getCode() == "10000") {
+            if (alipayTradePayResponse.getCode().equals("10000")) {
                 // 修改支付成功状态
                 Boolean success = paySuccess(payOrder);
                 if (success) {
@@ -778,7 +778,7 @@ public class AlipayPaymentService extends BasePayment {
                 retObj.put("payOrderId", payOrderId);
                 return retObj;
             }
-            if (alipayTradePayResponse.getCode() == "10003") {
+            if (alipayTradePayResponse.getCode().equals("10003")) {
                 // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
                 // 商户订单号，商户网站订单系统中唯一订单号，必填
                 AlipayTradeQueryModel alipayTradeQueryModel=new AlipayTradeQueryModel();
@@ -796,7 +796,7 @@ public class AlipayPaymentService extends BasePayment {
                         // TRADE_CLOSED（未付款交易超时关闭，或支付完成后全额退款）、
                         // TRADE_SUCCESS（交易支付成功）、
                         // TRADE_FINISHED（交易结束，不可退款）
-                        if (alipayTradeQueryResponse.getTradeStatus() == "TRADE_SUCCESS") {
+                        if (alipayTradeQueryResponse.getTradeStatus().equals("TRADE_SUCCESS")) {
                             // 修改支付成功状态
                             Boolean success = paySuccess(payOrder);
                             if (success) {
@@ -809,7 +809,7 @@ public class AlipayPaymentService extends BasePayment {
                             return retObj;
                         }
 
-                        if (alipayTradeQueryResponse.getTradeStatus() == "WAIT_BUYER_PAY" && i > 1) {
+                        if (alipayTradeQueryResponse.getTradeStatus().equals("WAIT_BUYER_PAY") && i > 1) {
                             continue;
                         }
 
