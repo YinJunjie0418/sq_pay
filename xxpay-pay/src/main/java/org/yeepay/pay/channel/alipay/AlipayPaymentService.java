@@ -823,6 +823,7 @@ public class AlipayPaymentService extends BasePayment {
                             AlipayTradeCancelResponse alipayTradeCancelResponse = client.execute(alipayTradeCancelRequest);
                         } catch (AlipayApiException eor) {
                             // 撤销单失败
+                            _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
                         }
                         retObj.put("errDes", "下单失败[未支付]");
                         retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
