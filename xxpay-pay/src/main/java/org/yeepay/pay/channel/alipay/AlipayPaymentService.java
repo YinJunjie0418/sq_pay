@@ -7,19 +7,37 @@ import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.domain.*;
 import com.alipay.api.request.*;
+import com.alipay.api.response.AlipayTradeCancelResponse;
+import com.alipay.api.response.AlipayTradePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
+import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
+import com.github.binarywang.wxpay.bean.request.WxPayMicropayRequest;
+import com.github.binarywang.wxpay.bean.request.WxPayOrderReverseRequest;
+import com.github.binarywang.wxpay.bean.result.WxPayMicropayResult;
+import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
+import com.github.binarywang.wxpay.config.WxPayConfig;
+import com.github.binarywang.wxpay.exception.WxPayException;
+import com.github.binarywang.wxpay.service.WxPayService;
+import com.github.binarywang.wxpay.service.impl.WxPayServiceImpl;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.yeepay.core.common.constant.PayConstant;
 import org.yeepay.core.common.util.AmountUtil;
 import org.yeepay.core.common.util.MyLog;
+import org.yeepay.core.common.util.StrUtil;
 import org.yeepay.core.entity.PayOrder;
 import org.yeepay.pay.channel.BasePayment;
+import org.yeepay.pay.channel.wxpay.WxPayUtil;
+import org.yeepay.pay.mq.BaseNotify4CashColl;
+import org.yeepay.pay.mq.BaseNotify4MchPay;
+
+import java.io.File;
 
 /**
  * @author: yf
@@ -28,6 +46,11 @@ import org.yeepay.pay.channel.BasePayment;
  */
 @Service
 public class AlipayPaymentService extends BasePayment {
+    @Autowired
+    BaseNotify4CashColl baseNotify4CashColl;
+
+    @Autowired
+    BaseNotify4MchPay baseNotify4MchPay;
 
     private static final MyLog _log = MyLog.getLog(AlipayPaymentService.class);
     public final static String PAY_CHANNEL_ALIPAY_QR_H5 = "alipay_qr_h5";	            // 支付宝当面付之H5支付
@@ -712,4 +735,132 @@ public class AlipayPaymentService extends BasePayment {
         return action + "&biz_content=" + biz_content;
     }
 
+    @Override
+    public JSONObject micropay(PayOrder payOrder, String authCode) {
+        String logPrefix = "【支付宝付款码支付】";
+
+
+        String payOrderId = payOrder.getPayOrderId();
+        AlipayConfig alipayConfig = new AlipayConfig(getPayParam(payOrder));
+        AlipayClient client = new DefaultAlipayClient(alipayConfig.getReqUrl(), alipayConfig.getAppId(), alipayConfig.getPrivateKey(), AlipayConfig.FORMAT, AlipayConfig.CHARSET, alipayConfig.getAlipayPublicKey(), AlipayConfig.SIGNTYPE);
+        AlipayTradePayRequest alipay_request = new AlipayTradePayRequest();
+        // 封装请求支付信息
+        AlipayTradePayModel model=new AlipayTradePayModel();
+        model.setOutTradeNo(payOrderId);
+        model.setSubject(payOrder.getSubject());
+        model.setTotalAmount(AmountUtil.convertCent2Dollar(payOrder.getAmount().toString()));
+        model.setBody(payOrder.getBody());
+        model.setProductCode("FACE_TO_FACE_PAYMENT");
+        model.setAuthCode(authCode);
+
+        alipay_request.setBizModel(model);
+
+        // 设置异步通知地址
+        alipay_request.setNotifyUrl(payConfig.getNotifyUrl(getChannelName()));
+        // 设置同步跳转地址
+        alipay_request.setReturnUrl(payConfig.getReturnUrl(getChannelName()));
+        String payParams = null;
+        JSONObject retObj = buildRetObj();
+        try {
+            AlipayTradePayResponse alipayTradePayResponse = client.execute(alipay_request);
+            rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
+            _log.info("{}生成付款码下单数据,tradeNo={}", logPrefix, alipayTradePayResponse.getTradeNo());
+            payOrder.setMchOrderNo(alipayTradePayResponse.getTradeNo());
+            if (alipayTradePayResponse.getCode() == "10000") {
+                // 修改支付成功状态
+                Boolean success = paySuccess(payOrder);
+                if (success) {
+                    _log.info("====== 付款码支付修改状态成功 ======");
+                } else {
+                    _log.info("====== 付款码支付修改状态失败 ======");
+                }
+                retObj.put("payOrderId", payOrderId);
+                return retObj;
+            }
+            if (alipayTradePayResponse.getCode() == "10003") {
+                // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
+                // 商户订单号，商户网站订单系统中唯一订单号，必填
+                AlipayTradeQueryModel alipayTradeQueryModel=new AlipayTradeQueryModel();
+                AlipayTradeQueryRequest alipayTradeQueryRequest = new AlipayTradeQueryRequest();
+                alipayTradeQueryModel.setOutTradeNo(payOrderId);
+                alipayTradeQueryModel.setTradeNo(alipayTradePayResponse.getTradeNo());
+                alipayTradeQueryRequest.setBizModel(alipayTradeQueryModel);
+                for (int i = 10; i > 0; i--) {
+                    _log.info("{}轮询{}", logPrefix, i);
+                    Thread.sleep(3000);
+                    try {
+                        AlipayTradeQueryResponse alipayTradeQueryResponse = client.execute(alipayTradeQueryRequest);
+                        // 交易状态：
+                        // WAIT_BUYER_PAY（交易创建，等待买家付款）、
+                        // TRADE_CLOSED（未付款交易超时关闭，或支付完成后全额退款）、
+                        // TRADE_SUCCESS（交易支付成功）、
+                        // TRADE_FINISHED（交易结束，不可退款）
+                        if (alipayTradeQueryResponse.getTradeStatus() == "TRADE_SUCCESS") {
+                            // 修改支付成功状态
+                            Boolean success = paySuccess(payOrder);
+                            if (success) {
+                                _log.info("====== 付款码支付修改状态成功 ======");
+                            } else {
+                                _log.info("====== 付款码支付修改状态失败 ======");
+                            }
+                            retObj.put("payOrderId", payOrderId);
+                            return retObj;
+                        }
+
+                        if (alipayTradeQueryResponse.getTradeStatus() == "WAIT_BUYER_PAY" && i > 1) {
+                            continue;
+                        }
+
+                        try {
+                            AlipayTradeCancelRequest alipayTradeCancelRequest = new AlipayTradeCancelRequest();//创建API对应的request类
+                            AlipayTradeCancelModel alipayTradeCancelModel=new AlipayTradeCancelModel();
+                            alipayTradeCancelModel.setOutTradeNo(payOrderId);
+                            alipayTradeCancelModel.setTradeNo(alipayTradePayResponse.getTradeNo());
+                            alipayTradeCancelRequest.setBizModel(alipayTradeCancelModel);
+                            AlipayTradeCancelResponse alipayTradeCancelResponse = client.execute(alipayTradeCancelRequest);
+                        } catch (AlipayApiException eor) {
+                            // 撤销单失败
+                        }
+                        retObj.put("errDes", "下单失败[未支付]");
+                        retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                        return retObj;
+                    } catch (AlipayApiException eq) {
+                        _log.error(eq, "");
+                        retObj.put("errDes", "下单失败[" + eq.getErrMsg() + "]");
+                        retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                        return retObj;
+                    }
+                }
+            }
+
+        } catch (AlipayApiException e) {
+            _log.error(e, "");
+            retObj.put("errDes", "下单失败[" + e.getErrMsg() + "]");
+            retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+            return retObj;
+        } catch (Exception e) {
+            _log.error(e, "");
+            retObj.put("errDes", "下单失败[调取通道异常]");
+            retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+            return retObj;
+        }
+
+        retObj.put("errDes", "调用支付宝异常!");
+        retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+        return retObj;
+    }
+
+    private Boolean paySuccess(PayOrder payOrder) {
+
+        int updatePayOrderRows = rpcCommonService.rpcPayOrderService.updateStatus4Success(payOrder.getPayOrderId(), payOrder.getMchOrderNo());
+        if (updatePayOrderRows != 1) {
+            return false;
+        }
+
+        //订单支付成功后，mq调用支付宝结算接口，进行资金归集操作。
+        baseNotify4CashColl.doNotify(payOrder.getPayOrderId());
+        baseNotify4MchPay.doNotify(payOrder, true);
+        _log.info("====== 完成处理支付宝支付回调通知 ======");
+        return true;
+    }
 }
