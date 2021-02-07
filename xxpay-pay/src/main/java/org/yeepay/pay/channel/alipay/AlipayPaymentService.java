@@ -10,15 +10,6 @@ import com.alipay.api.request.*;
 import com.alipay.api.response.AlipayTradeCancelResponse;
 import com.alipay.api.response.AlipayTradePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
-import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
-import com.github.binarywang.wxpay.bean.request.WxPayMicropayRequest;
-import com.github.binarywang.wxpay.bean.request.WxPayOrderReverseRequest;
-import com.github.binarywang.wxpay.bean.result.WxPayMicropayResult;
-import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryResult;
-import com.github.binarywang.wxpay.config.WxPayConfig;
-import com.github.binarywang.wxpay.exception.WxPayException;
-import com.github.binarywang.wxpay.service.WxPayService;
-import com.github.binarywang.wxpay.service.impl.WxPayServiceImpl;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
@@ -773,6 +764,9 @@ public class AlipayPaymentService extends BasePayment {
                     _log.info("====== 付款码支付修改状态成功 ======");
                 } else {
                     _log.info("====== 付款码支付修改状态失败 ======");
+                    retObj.put("errDes", "下单失败[TRADE_SUCCESS]");
+                    retObj.put(PayConstant.RESPONSE_RESULT, PayConstant.RETURN_VALUE_FAIL);
+                    return retObj;
                 }
                 retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
                 retObj.put("payOrderId", payOrderId);
@@ -803,6 +797,9 @@ public class AlipayPaymentService extends BasePayment {
                                 _log.info("====== 付款码支付修改状态成功 ======");
                             } else {
                                 _log.info("====== 付款码支付修改状态失败 ======");
+                                retObj.put("errDes", "下单失败[TRADE_SUCCESS]");
+                                retObj.put(PayConstant.RESPONSE_RESULT, PayConstant.RETURN_VALUE_FAIL);
+                                return retObj;
                             }
                             retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
                             retObj.put("payOrderId", payOrderId);

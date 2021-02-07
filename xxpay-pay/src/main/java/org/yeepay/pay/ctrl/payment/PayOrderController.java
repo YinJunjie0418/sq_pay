@@ -464,7 +464,8 @@ public class PayOrderController extends BaseController {
      * 1)先验证接口参数以及签名信息
      * 2)验证通过创建支付订单
      * 3)根据商户选择渠道,调用支付服务进行下单
-     * 4)返回下单数据
+     * 4)轮询等待付款码支付成功
+     * 5)成功后调用mq
      * @param request
      * @return
      */

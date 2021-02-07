@@ -224,7 +224,7 @@ public class WxpayPaymentService extends BasePayment {
                                 // 撤销单失败
                                 _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
                             }
-                            map.put("errDes", e.getErrCodeDes());
+                            map.put("errDes", "下单失败[未支付]");
                             map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                             break;
                         } catch (WxPayException eq) {
