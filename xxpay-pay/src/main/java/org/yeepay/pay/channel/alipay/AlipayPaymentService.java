@@ -814,6 +814,7 @@ public class AlipayPaymentService extends BasePayment {
                         }
 
                         try {
+                            _log.info("{}撤销单号{}", logPrefix, payOrder.getPayOrderId());
                             AlipayTradeCancelRequest alipayTradeCancelRequest = new AlipayTradeCancelRequest();//创建API对应的request类
                             AlipayTradeCancelModel alipayTradeCancelModel=new AlipayTradeCancelModel();
                             alipayTradeCancelModel.setOutTradeNo(payOrderId);
