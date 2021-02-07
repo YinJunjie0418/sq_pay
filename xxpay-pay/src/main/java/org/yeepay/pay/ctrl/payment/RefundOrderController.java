@@ -130,13 +130,15 @@ public class RefundOrderController extends BaseController {
                     result = rpcCommonService.rpcRefundOrderService.updateStatus4Success(refundOrderId, channelOrderNo);
                     _log.info("更新退款订单状态为成功({}),refundOrderId={},返回结果:{}", PayConstant.REFUND_STATUS_SUCCESS, refundOrderId, result);
 
-                    PayOrder updatePayOrder = new PayOrder();
-                    updatePayOrder.setPayOrderId(refundOrder.getPayOrderId());
-                    updatePayOrder.setStatus(PayConstant.PAY_STATUS_REFUND);    // 状态修改为已退款
-                    updatePayOrder.setIsRefund(MchConstant.PUB_YES);
-                    updatePayOrder.setRefundTimes(1);
-                    updatePayOrder.setSuccessRefundAmount(refundOrder.getRefundAmount());
-                    result = rpcCommonService.rpcPayOrderService.updateByPayOrderId(refundOrder.getPayOrderId(), updatePayOrder);
+                    result = rpcCommonService.rpcPayOrderService.updateForRefund(refundOrder.getPayOrderId(), refundOrder.getRefundAmount());
+
+//                    PayOrder updatePayOrder = new PayOrder();
+//                    updatePayOrder.setPayOrderId(refundOrder.getPayOrderId());
+//                    updatePayOrder.setStatus(PayConstant.PAY_STATUS_REFUND);    // 状态修改为已退款
+//                    updatePayOrder.setIsRefund(MchConstant.PUB_YES);
+//                    updatePayOrder.setRefundTimes(1);
+//                    updatePayOrder.setSuccessRefundAmount(refundOrder.getRefundAmount());
+//                    result = rpcCommonService.rpcPayOrderService.updateByPayOrderId(refundOrder.getPayOrderId(), updatePayOrder);
                     _log.info("更新支付订单退款信息,payOrderId={},返回结果:{}", refundOrder.getPayOrderId(), result);
                 }else {
                     // 更新退款状态为失败

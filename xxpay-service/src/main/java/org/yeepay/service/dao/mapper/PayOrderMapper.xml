@@ -1155,4 +1155,9 @@
     order by CreateTime asc ;
   </select>
 
+  <update id="updateForRefund">
+    update t_pay_order
+    set IsRefund = 1, RefundTimes = RefundTimes + 1, SuccessRefundAmount = SuccessRefundAmount + #{refundAmount, jdbcType=BIGINT}
+    where PayOrderId = #{payOrderId, jdbcType=VARCHAR} and Status in (2, 3, 4)
+  </update>
 </mapper>

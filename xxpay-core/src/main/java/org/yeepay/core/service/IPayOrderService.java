@@ -153,4 +153,5 @@ public interface IPayOrderService {
      */
     PayOrder findByAmount(Long amount, String rightCardNo, Long payTimeOut);
 
+    int updateForRefund(String payOrderId, Long refundAmount);
 }

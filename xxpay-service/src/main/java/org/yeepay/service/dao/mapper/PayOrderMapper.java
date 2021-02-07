@@ -124,4 +124,11 @@ public interface PayOrderMapper {
      */
     List<PayOrder> selectByAmount(Map param);
 
+    /**
+     * 更新退款金额
+     * @payOrderId payOrderId
+     * @refundAmount refundAmount
+     * @return
+     */
+    int updateForRefund(@Param("payOrderId") String payOrderId, @Param("refundAmount") Long refundAmount);
 }

@@ -113,6 +113,12 @@ public class PayOrderServiceImpl implements IPayOrderService {
     }
 
     @Transactional(transactionManager = "transactionManager", rollbackFor = Exception.class)
+    public int updateForRefund(String payOrderId, Long refundAmount) {
+        return payOrderMapper.updateForRefund(payOrderId, refundAmount);
+
+    }
+
+    @Transactional(transactionManager = "transactionManager", rollbackFor = Exception.class)
     int updateSuccess4Transactional(PayOrder payOrder, PayOrderExample example) {
         int count = payOrderMapper.updateByExampleSelective(payOrder, example);
         // 更新成功且为平台账户,增加商户资金账户流水记录
