@@ -774,6 +774,7 @@ public class AlipayPaymentService extends BasePayment {
                 } else {
                     _log.info("====== 付款码支付修改状态失败 ======");
                 }
+                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
                 retObj.put("payOrderId", payOrderId);
                 return retObj;
             }
@@ -803,6 +804,7 @@ public class AlipayPaymentService extends BasePayment {
                             } else {
                                 _log.info("====== 付款码支付修改状态失败 ======");
                             }
+                            retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
                             retObj.put("payOrderId", payOrderId);
                             return retObj;
                         }
