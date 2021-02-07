@@ -764,7 +764,7 @@ public class AlipayPaymentService extends BasePayment {
         try {
             AlipayTradePayResponse alipayTradePayResponse = client.execute(alipay_request);
             rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
-            _log.info("{}生成付款码下单数据,tradeNo={}", logPrefix, alipayTradePayResponse.getTradeNo());
+            _log.info("{}生成付款码下单数据,tradeNo={},code={}", logPrefix, alipayTradePayResponse.getTradeNo(), alipayTradePayResponse.getCode());
             payOrder.setMchOrderNo(alipayTradePayResponse.getTradeNo());
             if (alipayTradePayResponse.getCode() == "10000") {
                 // 修改支付成功状态
