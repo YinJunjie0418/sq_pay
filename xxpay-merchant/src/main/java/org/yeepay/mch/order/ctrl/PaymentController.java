@@ -323,7 +323,7 @@ public class PaymentController extends BaseController {
         }
 
         String mchIdStr = request.getParameter("mchId");
-        String priceStr  = request.getParameter("price");
+        String amountStr  = request.getParameter("amount");
         String mchOrderNo  = request.getParameter("mchOrderNo");
         String notifyUrl  = request.getParameter("notifyUrl");
         String appId = request.getParameter("appId");
@@ -336,7 +336,7 @@ public class PaymentController extends BaseController {
             JSONObject param = JSON.parseObject(p);
             mchIdStr = param.getString("mchId");
             appId = param.getString("appId");
-            priceStr = param.getString("price");
+            amountStr = param.getString("amount");
             mchOrderNo = param.getString("mchOrderNo");
             notifyUrl = param.getString("notifyUrl");
             codeIdStr = param.getString("codeId");
@@ -349,7 +349,7 @@ public class PaymentController extends BaseController {
             return PAGE_COMMON_ERROR;
         }
         Long mchId = Long.parseLong(mchIdStr);
-        Double price = Double.parseDouble(priceStr);
+        Double amount = Double.parseDouble(amountStr);
         Long codeId = Long.parseLong(codeIdStr);
         MchInfo mchInfo = rpcCommonService.rpcMchInfoService.findByMchId(mchId);
         MchApp mchApp = rpcCommonService.rpcMchAppService.findByMchIdAndAppId(mchId, appId);
@@ -415,7 +415,7 @@ public class PaymentController extends BaseController {
             if(StringUtils.isBlank(openId)) {
                 JSONObject param = new JSONObject();
                 param.put("mchId", mchId);
-                param.put("price", price);
+                param.put("amount", amount);
                 param.put("mchOrderNo", mchOrderNo);
                 param.put("notifyUrl", notifyUrl);
                 param.put("appId", appId);
@@ -492,7 +492,7 @@ public class PaymentController extends BaseController {
 
         // 设置支付页面所需参数
         model.put("mchId", mchId);
-        model.put("price", price);
+        model.put("amount", amount);
         model.put("mchOrderNo", mchOrderNo);
         model.put("notifyUrl", notifyUrl);
         model.put("appId", appId);
@@ -505,7 +505,7 @@ public class PaymentController extends BaseController {
     }
 
     /**
-     * 统一扫码支付
+     * 自定义统一扫码支付
      * @param request
      * @return
      */
@@ -553,7 +553,7 @@ public class PaymentController extends BaseController {
             return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_STATUS_CLOSE));
         }
         // 创建交易订单
-        String orderId = MySeq.getTrade();
+        String orderId = mchOrderNo;
         MchTradeOrder mchTradeOrder = new MchTradeOrder();
         mchTradeOrder.setMchId(mchId);
         mchTradeOrder.setAppId(appId);
@@ -565,23 +565,24 @@ public class PaymentController extends BaseController {
         mchTradeOrder.setTradeOrderId(orderId);
         mchTradeOrder.setChannelUserId(openId);
         mchTradeOrder.setBody(mchQrCode.getCodeName());
-        int result = rpcCommonService.rpcMchTradeOrderService.add(mchTradeOrder);
-        _log.info("create tradeOrder, orderId={}, result={}", orderId, result);
-        if(result != 1) {
-            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_CREATE_TRADE_ORDER_FAIL));
-        }
+//        int result = rpcCommonService.rpcMchTradeOrderService.add(mchTradeOrder);
+//        _log.info("create tradeOrder, orderId={}, result={}", orderId, result);
+//        if(result != 1) {
+//            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_CREATE_TRADE_ORDER_FAIL));
+//        }
         // 创建支付订单
         try {
-            Map resMap = createPayOrder(mchInfo, mchApp, mchTradeOrder);
-            String payOrderId = resMap.get("payOrderId").toString();
-            MchTradeOrder updateMchTradeOrder = new MchTradeOrder();
-            updateMchTradeOrder.setTradeOrderId(orderId);
-            updateMchTradeOrder.setPayOrderId(payOrderId);
-            result = rpcCommonService.rpcMchTradeOrderService.update(updateMchTradeOrder);
-            _log.info("update tradeOrder, orderId={},payOrderId={},result={}", orderId, payOrderId, result);
-            if(result != 1) {
-                return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_UPDATE_TRADE_ORDER_FAIL));
-            }
+            Map resMap = createCustomPayOrder(mchInfo, mchApp, mchTradeOrder, notifyUrl);
+//            String payOrderId = resMap.get("payOrderId").toString();
+//            MchTradeOrder updateMchTradeOrder = new MchTradeOrder();
+//            updateMchTradeOrder.setTradeOrderId(orderId);
+//            updateMchTradeOrder.setPayOrderId(payOrderId);
+//            updateMchTradeOrder.setStatus(MchConstant.TRADE_ORDER_STATUS_ING);
+//            result = rpcCommonService.rpcMchTradeOrderService.update(updateMchTradeOrder);
+//            _log.info("update tradeOrder, orderId={},payOrderId={},result={}", orderId, payOrderId, result);
+//            if(result != 1) {
+//                return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_UPDATE_TRADE_ORDER_FAIL));
+//            }
             jsonObject.put("payParams", resMap.get("payParams"));
             return ResponseEntity.ok(YeePayResponse.buildSuccess(jsonObject));
         }catch (Exception e) {
@@ -850,6 +851,54 @@ public class PaymentController extends BaseController {
         paramMap.put("subject", mchTradeOrder.getSubject());
         paramMap.put("body", mchTradeOrder.getBody());
         paramMap.put("notifyUrl", mainConfig.getNotifyUrl());               // 回调URL
+        paramMap.put("param1", "");                                         // 扩展参数1
+        paramMap.put("param2", "");                                         // 扩展参数2
+        // 如果是微信公众号支付需要传openId
+        if("8004".equalsIgnoreCase(mchTradeOrder.getProductId())) {
+            JSONObject extra = new JSONObject();
+            extra.put("openId", mchTradeOrder.getChannelUserId());              // 用户openId
+            paramMap.put("extra", extra.toJSONString());                        // 附加参数
+        }
+
+        String reqSign = PayDigestUtil.getSign(paramMap, mchInfo.getPrivateKey());
+        paramMap.put("sign", reqSign);   // 签名
+        String reqData = "params=" + paramMap.toJSONString();
+        _log.info("yeepay_req:{}", reqData);
+        String url = mainConfig.getPayUrl() + "/pay/create_order?";
+        String result = YeePayUtil.call4Post(url + reqData);
+        _log.info("yeepay_res:{}", result);
+        Map retMap = JSON.parseObject(result);
+        if(YeePayUtil.isSuccess(retMap)) {
+            // 验签
+            String checkSign = PayDigestUtil.getSign(retMap, mchInfo.getPrivateKey(), "sign");
+            String retSign = (String) retMap.get("sign");
+            //if(checkSign.equals(retSign)) return retMap;
+            //_log.info("验签失败:retSign={},checkSign={}", retSign, checkSign);
+            return retMap;
+        }
+        return retMap;
+    }
+
+    /**
+     * 自定义创建支付订单
+     * @param mchInfo
+     * @param mchApp
+     * @param mchTradeOrder
+     * @return
+     */
+    private Map createCustomPayOrder(MchInfo mchInfo, MchApp mchApp, MchTradeOrder mchTradeOrder, String notifyUrl) {
+        JSONObject paramMap = new JSONObject();
+        paramMap.put("mchId", mchInfo.getMchId());                          // 商户ID
+        if(mchApp != null) paramMap.put("appId", mchApp.getAppId());                           // 应用ID
+        paramMap.put("mchOrderNo", mchTradeOrder.getTradeOrderId());        // 商户交易单号
+        paramMap.put("productId", mchTradeOrder.getProductId());            // 支付产品ID
+        paramMap.put("amount", mchTradeOrder.getAmount());                  // 支付金额,单位分
+        paramMap.put("currency", "cny");                                    // 币种, cny-人民币
+        paramMap.put("clientIp", mchTradeOrder.getClientIp());              // 用户地址,IP或手机号
+        paramMap.put("device", "WEB");                                      // 设备
+        paramMap.put("subject", mchTradeOrder.getSubject());
+        paramMap.put("body", mchTradeOrder.getBody());
+        paramMap.put("notifyUrl", notifyUrl);               // 回调URL
         paramMap.put("param1", "");                                         // 扩展参数1
         paramMap.put("param2", "");                                         // 扩展参数2
         // 如果是微信公众号支付需要传openId
