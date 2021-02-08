@@ -103,7 +103,7 @@ public class RefundOrder implements Serializable {
     private Byte status;
 
     /**
-     * 退款结果:0-不确认结果,1-等待手动处理,2-确认成功,3-确认失败
+     * c
      *
      * @mbggenerated
      */

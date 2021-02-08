@@ -42,6 +42,10 @@ import java.util.Map;
  * @Copyright:
  */
 @RestController
+//@Api(value = "账单信息", tags = "账单信息接口")
+//
+//@ApiModelProperty(required = true, value = "货币误差")
+//@ApiOperation(value = "保存", notes = "参数：保存对象")
 public class RefundOrderController extends BaseController {
 
     private final MyLog _log = MyLog.getLog(RefundOrderController.class);

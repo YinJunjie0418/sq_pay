@@ -164,7 +164,6 @@ public class WxpayPaymentService extends BasePayment {
                 int result = rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
                 _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
 
-                JSONObject payInfo = new JSONObject();
                 // 修改支付成功状态
                 payOrder.setMchOrderNo(wxPayMicropayResult.getTransactionId());
                 Boolean success = paySuccess(payOrder);
@@ -176,8 +175,6 @@ public class WxpayPaymentService extends BasePayment {
                     return map;
                 }
 
-                payInfo.put("transactionId", wxPayMicropayResult.getTransactionId());
-                map.put("payParams", payInfo);
             } catch (WxPayException e) {
                 _log.error(e, "下单失败");
                 //出现业务错误
@@ -193,7 +190,6 @@ public class WxpayPaymentService extends BasePayment {
                         Thread.sleep(3000);
                         try {
                             WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
-                            JSONObject payInfo = new JSONObject();
                             if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
                                 map.put("payOrderId", payOrderId);
 
@@ -208,8 +204,6 @@ public class WxpayPaymentService extends BasePayment {
                                     return map;
                                 }
 
-                                payInfo.put("transactionId", wxPayOrderQueryResult.getTransactionId());
-                                map.put("payParams", payInfo);
                                 break;
                             }
                             if (wxPayOrderQueryResult.getTradeState().equals("USERPAYING") && i > 1) {

@@ -324,6 +324,8 @@ public class PaymentController extends BaseController {
 
         String mchIdStr = request.getParameter("mchId");
         String priceStr  = request.getParameter("price");
+        String mchOrderNo  = request.getParameter("mchOrderNo");
+        String notifyUrl  = request.getParameter("notifyUrl");
         String appId = request.getParameter("appId");
         String codeIdStr = request.getParameter("codeId");
         //String passageId = request.getParameter("passageId");
@@ -335,6 +337,8 @@ public class PaymentController extends BaseController {
             mchIdStr = param.getString("mchId");
             appId = param.getString("appId");
             priceStr = param.getString("price");
+            mchOrderNo = param.getString("mchOrderNo");
+            notifyUrl = param.getString("notifyUrl");
             codeIdStr = param.getString("codeId");
             //passageId = param.getString("passageId");
         }
@@ -412,6 +416,8 @@ public class PaymentController extends BaseController {
                 JSONObject param = new JSONObject();
                 param.put("mchId", mchId);
                 param.put("price", price);
+                param.put("mchOrderNo", mchOrderNo);
+                param.put("notifyUrl", notifyUrl);
                 param.put("appId", appId);
                 param.put("codeId", codeId);
 
@@ -487,6 +493,8 @@ public class PaymentController extends BaseController {
         // 设置支付页面所需参数
         model.put("mchId", mchId);
         model.put("price", price);
+        model.put("mchOrderNo", mchOrderNo);
+        model.put("notifyUrl", notifyUrl);
         model.put("appId", appId);
         model.put("codeId", codeId);
         model.put("channelId", channelId);
@@ -494,6 +502,92 @@ public class PaymentController extends BaseController {
         model.put("codeName", mchQrCode.getCodeName());
         model.put("openId", openId == null ? "" : openId);
         return "payment/qrcodecustom";
+    }
+
+    /**
+     * 统一扫码支付
+     * @param request
+     * @return
+     */
+    @RequestMapping("/scan_custom_pay")
+    @ResponseBody
+    public ResponseEntity<?> scanCustomPay(HttpServletRequest request) {
+        JSONObject jsonObject = new JSONObject();
+        String mchIdStr = request.getParameter("mchId");
+        String appId = request.getParameter("appId");
+        String codeIdStr = request.getParameter("codeId");
+        String channelId = request.getParameter("channelId");
+        String productId = request.getParameter("productId");
+        String openId = request.getParameter("openId");
+        String amount = request.getParameter("amount");
+        String mchOrderNo = request.getParameter("mchOrderNo");
+        String notifyUrl = request.getParameter("notifyUrl");
+
+        Float amountF = Float.parseFloat(amount) * 100;
+        Long amountL = amountF.longValue();
+        if(!NumberUtils.isDigits(mchIdStr) || !NumberUtils.isDigits(codeIdStr)) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_COMM_PARAM_ERROR));
+        }
+        if(StringUtils.isBlank(productId) || !NumberUtils.isDigits(productId)) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_COMM_PARAM_ERROR));
+        }
+        Long mchId = Long.parseLong(mchIdStr);
+        Long codeId = Long.parseLong(codeIdStr);
+        MchInfo mchInfo = rpcCommonService.rpcMchInfoService.findByMchId(mchId);
+        MchApp mchApp = rpcCommonService.rpcMchAppService.findByMchIdAndAppId(mchId, appId);
+        MchQrCode mchQrCode = rpcCommonService.rpcMchQrCodeService.findById(codeId);
+
+        if(PayConstant.PAY_CHANNEL_WX_JSAPI.equalsIgnoreCase(channelId) && StringUtils.isBlank(openId)) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_WX_OPENID_NOT_EXIST));
+        }
+
+        // 商户相关信息不存在
+        if(mchInfo == null || mchApp == null || mchQrCode == null) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_CONFIG_NOT_EXIST));
+        }
+
+        // 相关状态是否正常
+        if(MchConstant.PUB_YES != mchInfo.getStatus().byteValue() ||
+                MchConstant.PUB_YES != mchApp.getStatus().byteValue() ||
+                MchConstant.PUB_YES != mchQrCode.getStatus()) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_STATUS_CLOSE));
+        }
+        // 创建交易订单
+        String orderId = MySeq.getTrade();
+        MchTradeOrder mchTradeOrder = new MchTradeOrder();
+        mchTradeOrder.setMchId(mchId);
+        mchTradeOrder.setAppId(appId);
+        mchTradeOrder.setAmount(amountL);
+        //mchTradeOrder.setChannelId(channelId);
+        mchTradeOrder.setProductId(productId);
+        mchTradeOrder.setGoodsId(codeId+"");
+        mchTradeOrder.setSubject(mchQrCode.getCodeName());
+        mchTradeOrder.setTradeOrderId(orderId);
+        mchTradeOrder.setChannelUserId(openId);
+        mchTradeOrder.setBody(mchQrCode.getCodeName());
+        int result = rpcCommonService.rpcMchTradeOrderService.add(mchTradeOrder);
+        _log.info("create tradeOrder, orderId={}, result={}", orderId, result);
+        if(result != 1) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_CREATE_TRADE_ORDER_FAIL));
+        }
+        // 创建支付订单
+        try {
+            Map resMap = createPayOrder(mchInfo, mchApp, mchTradeOrder);
+            String payOrderId = resMap.get("payOrderId").toString();
+            MchTradeOrder updateMchTradeOrder = new MchTradeOrder();
+            updateMchTradeOrder.setTradeOrderId(orderId);
+            updateMchTradeOrder.setPayOrderId(payOrderId);
+            result = rpcCommonService.rpcMchTradeOrderService.update(updateMchTradeOrder);
+            _log.info("update tradeOrder, orderId={},payOrderId={},result={}", orderId, payOrderId, result);
+            if(result != 1) {
+                return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_UPDATE_TRADE_ORDER_FAIL));
+            }
+            jsonObject.put("payParams", resMap.get("payParams"));
+            return ResponseEntity.ok(YeePayResponse.buildSuccess(jsonObject));
+        }catch (Exception e) {
+            _log.error(e, "创建订单失败");
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_CREATE_PAY_ORDER_FAIL));
+        }
     }
 
     /**
@@ -705,6 +799,7 @@ public class PaymentController extends BaseController {
             String errorMessage = "verify request param failed.";
             _log.warn(errorMessage);
             resStr = "fail";
+            _log.info("====== 支付中心通知处理完成 ======1");
         }else {
             try {
                 MchTradeOrder mchTradeOrder = rpcCommonService.rpcMchTradeOrderService.findByTradeOrderId(mchOrderNo);
@@ -721,6 +816,7 @@ public class PaymentController extends BaseController {
                     resStr = "success";
                 }else {
                     resStr = "fail";
+                    _log.info("====== 支付中心通知处理完成 ======2");
                 }
             }catch (Exception e) {
                 resStr = "fail";
