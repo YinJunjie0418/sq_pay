@@ -660,6 +660,7 @@ public class PaymentController extends BaseController {
             MchTradeOrder updateMchTradeOrder = new MchTradeOrder();
             updateMchTradeOrder.setTradeOrderId(orderId);
             updateMchTradeOrder.setPayOrderId(payOrderId);
+            updateMchTradeOrder.setStatus(MchConstant.TRADE_ORDER_STATUS_ING);
             result = rpcCommonService.rpcMchTradeOrderService.update(updateMchTradeOrder);
             _log.info("update tradeOrder, orderId={},payOrderId={},result={}", orderId, payOrderId, result);
             if(result != 1) {
