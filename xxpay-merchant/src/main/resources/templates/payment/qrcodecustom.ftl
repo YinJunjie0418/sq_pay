@@ -160,9 +160,14 @@
             <h4>向${codeName}付款</h4>
             <div class="wap-form clearFix">
                 <label for="">金额</label>
-                <input class="shuru" name="qrCode" v-model="something" readonly="readonly" value="${price}">
+                <input class="shuru" name="qrCode" v-model="something" readonly="readonly" value="${amount}">
+                        <input type="hidden" value="${mchOrderNo}" name="mchOrderNo"/>
+                <input type="hidden" value="${notifyUrl}" name="notifyUrl"/>
             </div>
         </div>
+
+
+
         <p class="beizhu">
             <span>添加付款备注</span>
             <input type="text">
@@ -222,7 +227,7 @@
     //开始支付
     function paymentOrder(amount){
         $.ajax({
-            url: '/api/payment/scan_pay?mchId=${mchId!}&appId=${appId!}&codeId=${codeId!}&channelId=${channelId!}&productId=${productId!}&openId=${openId!}&amount=' + amount,
+            url: '/api/payment/scan_custom_pay?mchId=${mchId!}&mchOrderNo=${mchOrderNo!}&notifyUrl=${notifyUrl!}&appId=${appId!}&codeId=${codeId!}&channelId=${channelId!}&productId=${productId!}&openId=${openId!}&amount=' + amount,
             type: 'GET',
             cache: false,
             async: false,
