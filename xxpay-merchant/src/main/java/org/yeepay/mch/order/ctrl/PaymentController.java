@@ -421,6 +421,8 @@ public class PaymentController extends BaseController {
                 param.put("appId", appId);
                 param.put("codeId", codeId);
 
+
+
                 MchPayPassage mchPayPassage = rpcCommonService.rpcMchPayPassageService.findByMchIdAndProductId(mchId, Integer.parseInt(productId));
                 if(mchPayPassage == null) {
                     // 商户没有配置扫码支付渠道
@@ -501,6 +503,7 @@ public class PaymentController extends BaseController {
         model.put("productId", productId);
         model.put("codeName", mchQrCode.getCodeName());
         model.put("openId", openId == null ? "" : openId);
+        model.put("mchName", mchInfo.getName());
         return "payment/qrcodecustom";
     }
 
