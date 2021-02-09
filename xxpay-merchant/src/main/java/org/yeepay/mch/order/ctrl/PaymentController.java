@@ -576,14 +576,14 @@ public class PaymentController extends BaseController {
         // 创建支付订单
         try {
             Map resMap = createCustomPayOrder(mchInfo, mchApp, mchTradeOrder, notifyUrl);
-            String payOrderId = resMap.get("payOrderId").toString();
+//            String payOrderId = resMap.get("payOrderId").toString();
 //            MchTradeOrder updateMchTradeOrder = new MchTradeOrder();
 //            updateMchTradeOrder.setTradeOrderId(orderId);
 //            updateMchTradeOrder.setPayOrderId(payOrderId);
 //            updateMchTradeOrder.setStatus(MchConstant.TRADE_ORDER_STATUS_ING);
 //            result = rpcCommonService.rpcMchTradeOrderService.update(updateMchTradeOrder);
 //            _log.info("update tradeOrder, orderId={},payOrderId={},result={}", orderId, payOrderId, result);
-            if(null == payOrderId) {
+            if(null == resMap) {
                 return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_UPDATE_TRADE_ORDER_FAIL));
             }
             jsonObject.put("payParams", resMap.get("payParams"));
