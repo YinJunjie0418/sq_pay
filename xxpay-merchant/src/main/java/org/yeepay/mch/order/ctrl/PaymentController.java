@@ -584,7 +584,7 @@ public class PaymentController extends BaseController {
 //            result = rpcCommonService.rpcMchTradeOrderService.update(updateMchTradeOrder);
 //            _log.info("update tradeOrder, orderId={},payOrderId={},result={}", orderId, payOrderId, result);
             if(null == resMap.get("payOrderId")) {
-                return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_UPDATE_TRADE_ORDER_FAIL));
+                return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_CREATE_PAY_ORDER_FAIL));
             }
             jsonObject.put("payParams", resMap.get("payParams"));
             return ResponseEntity.ok(YeePayResponse.buildSuccess(jsonObject));
