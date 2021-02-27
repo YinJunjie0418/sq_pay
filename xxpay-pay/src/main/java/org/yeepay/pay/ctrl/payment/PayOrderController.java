@@ -366,17 +366,17 @@ public class PayOrderController extends BaseController {
 
         // 根据不同渠道,判断extra参数
         if(PayConstant.PAY_CHANNEL_WX_JSAPI.equalsIgnoreCase(channelId)) {
-            if(StringUtils.isEmpty(extra)) {
-                errorMessage = "request params[extra] error.";
-                return errorMessage;
-            }
-            JSONObject extraObject = JSON.parseObject(extra);
-            String openId = extraObject.getString("openId");
-            if(StringUtils.isBlank(openId)) {
-                errorMessage = "request params[extra.openId] error.";
-                return errorMessage;
-            }
-            channelUser = openId;
+//            if(StringUtils.isEmpty(extra)) {
+//                errorMessage = "request params[extra] error.";
+//                return errorMessage;
+//            }
+//            JSONObject extraObject = JSON.parseObject(extra);
+//            String openId = extraObject.getString("openId");
+//            if(StringUtils.isBlank(openId)) {
+//                errorMessage = "request params[extra.openId] error.";
+//                return errorMessage;
+//            }
+//            channelUser = openId;
         }else if(PayConstant.PAY_CHANNEL_WX_MWEB.equalsIgnoreCase(channelId)) {
             if(StringUtils.isEmpty(extra)) {
                 errorMessage = "请求参数[extra]不能为空.";
