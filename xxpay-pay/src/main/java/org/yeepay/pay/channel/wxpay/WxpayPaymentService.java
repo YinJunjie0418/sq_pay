@@ -181,56 +181,66 @@ public class WxpayPaymentService extends BasePayment {
                 _log.info("{}下单返回失败", logPrefix);
                 _log.info("err_code:{}", e.getErrCode());
                 _log.info("err_code_des:{}", e.getErrCodeDes());
+                // 开启线程
                 if (e.getErrCode().equals("USERPAYING")) {
-                    int result = rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
-                    _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
-                    // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
-                    for (int i = 10; i > 0; i--) {
-                        _log.info("{}轮询{}", logPrefix, i);
-                        Thread.sleep(3000);
-                        try {
-                            WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
-                            if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
-                                map.put("payOrderId", payOrderId);
+                    new Thread(
+                        ()->{
+                            int result = rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
+                            _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
+                            // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
+                            for (int i = 10; i > 0; i--) {
+                                _log.info("{}轮询{}", logPrefix, i);
+                                try {
+                                    Thread.sleep(1000);
+                                    WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
+                                    if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
+                                        map.put("payOrderId", payOrderId);
 
-                                // 修改支付成功状态
-                                payOrder.setMchOrderNo(wxPayOrderQueryResult.getTransactionId());
-                                Boolean success = paySuccess(payOrder);
-                                if (success) {
-                                    _log.error("{}更新支付状态成功,将payOrderId={},更新payStatus={}成功", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
-                                } else {
-                                    _log.error("{}更新支付状态失败,将payOrderId={},更新payStatus={}失败", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
-                                    map.put(PayConstant.RESPONSE_RESULT, WxPayNotifyResponse.fail("处理订单失败"));
-                                    return map;
+                                        // 修改支付成功状态
+                                        payOrder.setMchOrderNo(wxPayOrderQueryResult.getTransactionId());
+                                        Boolean success = paySuccess(payOrder);
+                                        if (success) {
+                                            _log.error("{}更新支付状态成功,将payOrderId={},更新payStatus={}成功", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                                        } else {
+                                            _log.error("{}更新支付状态失败,将payOrderId={},更新payStatus={}失败", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                                            break;
+    //                                                map.put(PayConstant.RESPONSE_RESULT, WxPayNotifyResponse.fail("处理订单失败"));
+    //                                                return map;
+                                        }
+
+                                        break;
+                                    }
+                                    if (wxPayOrderQueryResult.getTradeState().equals("USERPAYING") && i > 1) {
+                                        continue;
+                                    }
+
+                                    WxPayOrderReverseRequest wxPayOrderReverseRequest = buildOrderReverseRequest(payOrder, wxPayConfig);
+                                    try {
+                                        _log.info("{}撤销单号{}", logPrefix, payOrder.getPayOrderId());
+                                        wxPayService.reverseOrder(wxPayOrderReverseRequest);
+                                    } catch (WxPayException eor) {
+                                        // 撤销单失败
+                                        _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
+                                    }
+                                    map.put("errDes", "下单失败[未支付]");
+                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                    break;
+                                } catch (WxPayException  eq) {
+                                    map.put("errDes", eq.getErrCodeDes());
+                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                    break;
+                                } catch ( InterruptedException ie) {
+
                                 }
-
-                                break;
                             }
-                            if (wxPayOrderQueryResult.getTradeState().equals("USERPAYING") && i > 1) {
-                                continue;
-                            }
-
-                            WxPayOrderReverseRequest wxPayOrderReverseRequest = buildOrderReverseRequest(payOrder, wxPayConfig);
-                            try {
-                                _log.info("{}撤销单号{}", logPrefix, payOrder.getPayOrderId());
-                                wxPayService.reverseOrder(wxPayOrderReverseRequest);
-                            } catch (WxPayException eor) {
-                                // 撤销单失败
-                                _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
-                            }
-                            map.put("errDes", "下单失败[未支付]");
-                            map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
-                            break;
-                        } catch (WxPayException eq) {
-                            map.put("errDes", eq.getErrCodeDes());
-                            map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
-                            break;
                         }
-                    }
+                    ).start();
+                    map.put("payOrderId", payOrderId);
                 } else {
                     map.put("errDes", e.getErrCodeDes());
                     map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                 }
+                return map;
             }
         }catch (Exception e) {
             _log.error(e, "微信支付统一下单异常");

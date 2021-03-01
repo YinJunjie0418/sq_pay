@@ -773,65 +773,78 @@ public class AlipayPaymentService extends BasePayment {
                 return retObj;
             }
             if (alipayTradePayResponse.getCode().equals("10003")) {
-                // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
-                // 商户订单号，商户网站订单系统中唯一订单号，必填
-                AlipayTradeQueryModel alipayTradeQueryModel=new AlipayTradeQueryModel();
-                AlipayTradeQueryRequest alipayTradeQueryRequest = new AlipayTradeQueryRequest();
-                alipayTradeQueryModel.setOutTradeNo(payOrderId);
-                alipayTradeQueryModel.setTradeNo(alipayTradePayResponse.getTradeNo());
-                alipayTradeQueryRequest.setBizModel(alipayTradeQueryModel);
-                for (int i = 10; i > 0; i--) {
-                    _log.info("{}轮询{}", logPrefix, i);
-                    Thread.sleep(3000);
-                    try {
-                        AlipayTradeQueryResponse alipayTradeQueryResponse = client.execute(alipayTradeQueryRequest);
-                        // 交易状态：
-                        // WAIT_BUYER_PAY（交易创建，等待买家付款）、
-                        // TRADE_CLOSED（未付款交易超时关闭，或支付完成后全额退款）、
-                        // TRADE_SUCCESS（交易支付成功）、
-                        // TRADE_FINISHED（交易结束，不可退款）
-                        if (alipayTradeQueryResponse.getTradeStatus().equals("TRADE_SUCCESS")) {
-                            // 修改支付成功状态
-                            Boolean success = paySuccess(payOrder);
-                            if (success) {
-                                _log.info("====== 付款码支付修改状态成功 ======");
-                            } else {
-                                _log.info("====== 付款码支付修改状态失败 ======");
-                                retObj.put("errDes", "下单失败[TRADE_SUCCESS]");
-                                retObj.put(PayConstant.RESPONSE_RESULT, PayConstant.RETURN_VALUE_FAIL);
-                                return retObj;
+                // 开启线程
+                new Thread(
+                    ()-> {
+                        // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
+                        // 商户订单号，商户网站订单系统中唯一订单号，必填
+                        AlipayTradeQueryModel alipayTradeQueryModel = new AlipayTradeQueryModel();
+                        AlipayTradeQueryRequest alipayTradeQueryRequest = new AlipayTradeQueryRequest();
+                        alipayTradeQueryModel.setOutTradeNo(payOrderId);
+                        alipayTradeQueryModel.setTradeNo(alipayTradePayResponse.getTradeNo());
+                        alipayTradeQueryRequest.setBizModel(alipayTradeQueryModel);
+                        for (int i = 10; i > 0; i--) {
+                            _log.info("{}轮询{}", logPrefix, i);
+                            try {
+                                Thread.sleep(1000);
+                                AlipayTradeQueryResponse alipayTradeQueryResponse = client.execute(alipayTradeQueryRequest);
+                                // 交易状态：
+                                // WAIT_BUYER_PAY（交易创建，等待买家付款）、
+                                // TRADE_CLOSED（未付款交易超时关闭，或支付完成后全额退款）、
+                                // TRADE_SUCCESS（交易支付成功）、
+                                // TRADE_FINISHED（交易结束，不可退款）
+                                if (alipayTradeQueryResponse.getTradeStatus().equals("TRADE_SUCCESS")) {
+                                    // 修改支付成功状态
+                                    Boolean success = paySuccess(payOrder);
+                                    if (success) {
+                                        _log.info("====== 付款码支付修改状态成功 ======");
+                                    } else {
+                                        _log.info("====== 付款码支付修改状态失败 ======");
+                                        retObj.put("errDes", "下单失败[TRADE_SUCCESS]");
+                                        retObj.put(PayConstant.RESPONSE_RESULT, PayConstant.RETURN_VALUE_FAIL);
+                                        break;
+//                                        return retObj;
+                                    }
+                                    retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
+                                    retObj.put("payOrderId", payOrderId);
+                                    break;
+//                                    return retObj;
+                                }
+
+                                if (alipayTradeQueryResponse.getTradeStatus().equals("WAIT_BUYER_PAY") && i > 1) {
+                                    continue;
+                                }
+
+                                try {
+                                    _log.info("{}撤销单号{}", logPrefix, payOrder.getPayOrderId());
+                                    AlipayTradeCancelRequest alipayTradeCancelRequest = new AlipayTradeCancelRequest();//创建API对应的request类
+                                    AlipayTradeCancelModel alipayTradeCancelModel = new AlipayTradeCancelModel();
+                                    alipayTradeCancelModel.setOutTradeNo(payOrderId);
+                                    alipayTradeCancelModel.setTradeNo(alipayTradePayResponse.getTradeNo());
+                                    alipayTradeCancelRequest.setBizModel(alipayTradeCancelModel);
+                                    AlipayTradeCancelResponse alipayTradeCancelResponse = client.execute(alipayTradeCancelRequest);
+                                } catch (AlipayApiException eor) {
+                                    // 撤销单失败
+                                    _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
+                                }
+                                retObj.put("errDes", "下单失败[未支付]");
+                                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                break;
+//                                return retObj;
+                            } catch (AlipayApiException eq) {
+                                _log.error(eq, "");
+                                retObj.put("errDes", "下单失败[" + eq.getErrMsg() + "]");
+                                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                break;
+//                                return retObj;
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
                             }
-                            retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
-                            retObj.put("payOrderId", payOrderId);
-                            return retObj;
                         }
-
-                        if (alipayTradeQueryResponse.getTradeStatus().equals("WAIT_BUYER_PAY") && i > 1) {
-                            continue;
-                        }
-
-                        try {
-                            _log.info("{}撤销单号{}", logPrefix, payOrder.getPayOrderId());
-                            AlipayTradeCancelRequest alipayTradeCancelRequest = new AlipayTradeCancelRequest();//创建API对应的request类
-                            AlipayTradeCancelModel alipayTradeCancelModel=new AlipayTradeCancelModel();
-                            alipayTradeCancelModel.setOutTradeNo(payOrderId);
-                            alipayTradeCancelModel.setTradeNo(alipayTradePayResponse.getTradeNo());
-                            alipayTradeCancelRequest.setBizModel(alipayTradeCancelModel);
-                            AlipayTradeCancelResponse alipayTradeCancelResponse = client.execute(alipayTradeCancelRequest);
-                        } catch (AlipayApiException eor) {
-                            // 撤销单失败
-                            _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
-                        }
-                        retObj.put("errDes", "下单失败[未支付]");
-                        retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
-                        return retObj;
-                    } catch (AlipayApiException eq) {
-                        _log.error(eq, "");
-                        retObj.put("errDes", "下单失败[" + eq.getErrMsg() + "]");
-                        retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
-                        return retObj;
-                    }
-                }
+                    }).start();
+                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
+                retObj.put("payOrderId", payOrderId);
+                return retObj;
             }
 
         } catch (AlipayApiException e) {
