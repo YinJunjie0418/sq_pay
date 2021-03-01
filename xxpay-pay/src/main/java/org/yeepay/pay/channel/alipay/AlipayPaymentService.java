@@ -783,7 +783,7 @@ public class AlipayPaymentService extends BasePayment {
                         alipayTradeQueryModel.setOutTradeNo(payOrderId);
                         alipayTradeQueryModel.setTradeNo(alipayTradePayResponse.getTradeNo());
                         alipayTradeQueryRequest.setBizModel(alipayTradeQueryModel);
-                        for (int i = 10; i > 0; i--) {
+                        for (int i = 30; i > 0; i--) {
                             _log.info("{}轮询{}", logPrefix, i);
                             try {
                                 Thread.sleep(1000);
@@ -838,7 +838,9 @@ public class AlipayPaymentService extends BasePayment {
                                 break;
 //                                return retObj;
                             } catch (InterruptedException e) {
-                                e.printStackTrace();
+                                retObj.put("errDes", "微信支付统一下单异常");
+                                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                break;
                             }
                         }
                     }).start();

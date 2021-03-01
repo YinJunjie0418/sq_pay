@@ -188,7 +188,7 @@ public class WxpayPaymentService extends BasePayment {
                             int result = rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
                             _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
                             // 商户系统再轮询调用查询订单接口来确认当前用户是否已经支付成功。
-                            for (int i = 10; i > 0; i--) {
+                            for (int i = 30; i > 0; i--) {
                                 _log.info("{}轮询{}", logPrefix, i);
                                 try {
                                     Thread.sleep(1000);
@@ -230,7 +230,9 @@ public class WxpayPaymentService extends BasePayment {
                                     map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                     break;
                                 } catch ( InterruptedException ie) {
-
+                                    map.put("errDes", "微信支付统一下单异常");
+                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
+                                    break;
                                 }
                             }
                         }
