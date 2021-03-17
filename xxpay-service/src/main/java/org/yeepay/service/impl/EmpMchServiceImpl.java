@@ -14,6 +14,7 @@ public class EmpMchServiceImpl implements IEmpMchService {
 
     @Override
     public EmpMch findByEmpId(Long empId) {
+        System.out.println(empId);
         return empMchMapper.selectByPrimaryKey(empId);
     }
 }

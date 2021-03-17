@@ -183,10 +183,10 @@ public class AuthController extends BaseController {
         String code = URLDecoder.decode(getStringRequired(param, "code"),"UTF-8");
 
         Long empId = Long.parseLong(decryptAES(code));
-        _log.info(empId.toString());
 
         EmpMch empMch = empMchService.findByEmpId(empId);
         if(empMch == null) {
+            _log.info(empId.toString());
             return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
         }
         MchInfo mchInfo = userService.findByMchId(empMch.getMchId());
