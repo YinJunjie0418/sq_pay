@@ -3,6 +3,8 @@ package org.yeepay.mch.user.ctrl;
 import com.alibaba.fastjson.JSONObject;
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
+import me.chanjar.weixin.common.util.crypto.PKCS7Encoder;
+import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -17,23 +19,30 @@ import org.yeepay.core.common.constant.RetEnum;
 import org.yeepay.core.common.domain.BizResponse;
 import org.yeepay.core.common.domain.YeePayResponse;
 import org.yeepay.core.common.util.*;
+import org.yeepay.core.entity.EmpMch;
 import org.yeepay.core.entity.MchInfo;
 import org.yeepay.mch.common.ctrl.BaseController;
 import org.yeepay.mch.common.util.AliSmsUtil;
 import org.yeepay.mch.secruity.JwtAuthenticationRequest;
 import org.yeepay.mch.secruity.JwtTokenUtil;
+import org.yeepay.mch.user.service.EmpMchService;
 import org.yeepay.mch.user.service.UserService;
 
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.spec.AlgorithmParameterSpec;
+import java.util.*;
 
 @RequestMapping(Constant.MCH_CONTROLLER_ROOT_PATH)
 @RestController
@@ -47,6 +56,10 @@ public class AuthController extends BaseController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private EmpMchService empMchService;
+
+
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
@@ -155,6 +168,196 @@ public class AuthController extends BaseController {
         JSONObject data = new JSONObject();
         data.put("access_token", jwtToken);
         return ResponseEntity.ok(YeePayResponse.buildSuccess(data));
+    }
+
+    /**
+     * 员工登录鉴权(运营平台登录商户系统鉴权)
+     * @return
+     * @throws AuthenticationException
+     */
+    @RequestMapping(value = "/emp_auth")
+    public ResponseEntity<?> empAuthToken(HttpServletRequest request,
+                                          HttpServletResponse response) throws Exception {
+        JSONObject param = getJsonParam(request);
+        String code = getStringRequired(param, "code");
+
+        Long empId = Long.parseLong(decryptAES(code));
+
+        EmpMch empMch = empMchService.findByEmpId(empId);
+        if(empMch == null) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
+        }
+        MchInfo mchInfo = userService.findByMchId(empMch.getMchId());
+        if(mchInfo == null) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
+        }
+        if(MchConstant.PUB_YES != mchInfo.getStatus()) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_MCH_STATUS_STOP));
+        }
+
+        // 生成jwtToken返回
+        String jwtToken = jwtTokenUtil.generateToken(mchInfo.getMchId(), String.valueOf(mchInfo.getMchId()));
+        JSONObject data = new JSONObject();
+        data.put("access_token", jwtToken);
+        return ResponseEntity.ok(YeePayResponse.buildSuccess(data));
+    }
+
+ public static void main(String[] args) throws Exception {
+
+     String a = encrypt("qwertyuiopasdfgh");
+     _log.info(a);
+     String b = decrypt(a);
+     _log.info(b);
+     String c = encryptAES("asdfve");
+     _log.info(c);
+     String d = decryptAES(c);
+     _log.info(d);
+     String e = decryptAES("2/SFtKz0VYUfo1Fz3leJlg==");
+     _log.info(e);
+
+
+//     Long empId = Long.parseLong(a);
+}
+    /**
+     * 对密文进行解密.
+     *
+     * @param content 需要解密的密文
+     * @return 解密得到的明文
+     */
+    static String decrypt(String content) {
+        String aesKey = "asdfghjklzxcvbnm";
+
+        try {
+            // 1.构造密钥生成器，指定为AES算法,不区分大小写
+            KeyGenerator keygen = KeyGenerator.getInstance("AES");
+            // 2.根据ecnodeRules规则初始化密钥生成器
+            // 生成一个128位的随机源,根据传入的字节数组
+            keygen.init(128, new SecureRandom(aesKey.getBytes()));
+//            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG") ;
+//            secureRandom.setSeed(aesKey.getBytes());
+//            keygen.init(128, secureRandom);
+            // 3.产生原始对称密钥
+            SecretKey original_key = keygen.generateKey();
+            // 4.获得原始对称密钥的字节数组
+            byte[] raw = original_key.getEncoded();
+            // 5.根据字节数组生成AES密钥
+            SecretKey key = new SecretKeySpec(raw, "AES");
+            // 6.根据指定算法AES自成密码器
+            Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+            // 7.初始化密码器，第一个参数为加密(Encrypt_mode)或者解密(Decrypt_mode)操作，第二个参数为使用的KEY
+            cipher.init(Cipher.DECRYPT_MODE, key);
+            // 8.将加密并编码后的内容解码成字节数组
+            byte[] byte_content = Base64.decodeBase64(content);
+            /*
+             * 解密
+             */
+            byte[] byte_decode = cipher.doFinal(byte_content);
+            String AES_decode = new String(byte_decode, "utf-8");
+            return AES_decode;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 对密文进行加密.
+     *
+     * @param content 需要解密的密文
+     * @return 解密得到的明文
+     */
+    static String encrypt(String content) {
+        String aesKey = "asdfghjklzxcvbnm";
+
+        try {
+            // 1.构造密钥生成器，指定为AES算法,不区分大小写
+            KeyGenerator keygen = KeyGenerator.getInstance("AES");
+            // 2.根据ecnodeRules规则初始化密钥生成器
+            // 生成一个128位的随机源,根据传入的字节数组
+            keygen.init(128, new SecureRandom(aesKey.getBytes()));
+//            SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG") ;
+//            secureRandom.setSeed(aesKey.getBytes());
+//            keygen.init(128, secureRandom);
+            // 3.产生原始对称密钥
+            SecretKey original_key = keygen.generateKey();
+            // 4.获得原始对称密钥的字节数组
+            byte[] raw = original_key.getEncoded();
+            // 5.根据字节数组生成AES密钥
+            SecretKey key = new SecretKeySpec(raw, "AES");
+            // 6.根据指定算法AES自成密码器
+            Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+            // 7.初始化密码器，第一个参数为加密(Encrypt_mode)或者解密解密(Decrypt_mode)操作，第二个参数为使用的KEY
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            // 8.获取加密内容的字节数组(这里要设置为utf-8)不然内容中如果有中文和英文混合中文就会解密为乱码
+            byte[] byte_encode = content.getBytes("utf-8");
+            // 9.根据密码器的初始化方式--加密：将数据加密
+            byte[] byte_AES = cipher.doFinal(byte_encode);
+            // 10.将加密后的数据转换为字符串
+            // 这里用Base64Encoder中会找不到包
+            // 解决办法：
+            // 在项目的Build path中先移除JRE System Library，再添加库JRE System Library，重新编译后就一切正常了。
+            String AES_encode = new String(Base64.encodeBase64String(byte_AES));
+            // 11.将字符串返回
+            return AES_encode;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
+    public static String encryptAES(String data) throws Exception {
+        String aesKey = "qwertyuiopasdfgh";
+        String ivString = "asdfghjklzxcvbnm";
+
+        try {
+
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");   //参数分别代表 算法名称/加密模式/数据填充方式
+            int blockSize = cipher.getBlockSize();
+
+            byte[] dataBytes = data.getBytes();
+            int plaintextLength = dataBytes.length;
+            if (plaintextLength % blockSize != 0) {
+                plaintextLength = plaintextLength + (blockSize - (plaintextLength % blockSize));
+            }
+
+            byte[] plaintext = new byte[plaintextLength];
+            System.arraycopy(dataBytes, 0, plaintext, 0, dataBytes.length);
+
+            SecretKeySpec keyspec = new SecretKeySpec(aesKey.getBytes(), "AES");
+            IvParameterSpec ivspec = new IvParameterSpec(ivString.getBytes(StandardCharsets.UTF_8));
+
+            cipher.init(Cipher.ENCRYPT_MODE, keyspec);
+            byte[] encrypted = cipher.doFinal(plaintext);
+
+            return new sun.misc.BASE64Encoder().encode(encrypted);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static String decryptAES(String data) throws Exception {
+        String aesKey = "qwertyuiopasdfgh";
+        String ivString = "asdfghjklzxcvbnm";
+
+        try {
+
+            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");   //参数分别代表 算法名称/加密模式/数据填充方式
+            byte[] encrypted1 = Base64.decodeBase64(data);
+
+            SecretKeySpec keyspec = new SecretKeySpec(aesKey.getBytes("UTF-8"), "AES");
+            IvParameterSpec ivspec = new IvParameterSpec(ivString.getBytes(StandardCharsets.UTF_8));
+
+            cipher.init(Cipher.DECRYPT_MODE, keyspec);
+
+            byte[] original = cipher.doFinal(encrypted1);
+            String originalString = new String(original);
+            return originalString;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**

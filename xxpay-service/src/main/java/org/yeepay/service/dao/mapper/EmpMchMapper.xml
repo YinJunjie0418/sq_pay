@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.yeepay.service.dao.mapper.EmpMchMapper" >
+    <resultMap id="BaseResultMap" type="org.yeepay.core.entity.EmpMch" >
+        <id column="EmpId" property="empId" jdbcType="BIGINT" />
+        <result column="MchId" property="mchId" jdbcType="BIGINT" />
+    </resultMap>
+    <!-- 统计商户信息 -->
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Long" >
+        select
+        <include refid="Base_Column_List" />
+        from v2_emp_mch
+        where EmpId = #{empId,jdbcType=BIGINT}
+    </select>
+
+    <sql id="Base_Column_List" >
+        EmpId, MchId, CreateTime
+    </sql>
+</mapper>

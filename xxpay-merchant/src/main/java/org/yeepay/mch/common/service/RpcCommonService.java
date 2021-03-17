@@ -3,6 +3,7 @@ package org.yeepay.mch.common.service;
 import com.alibaba.dubbo.config.annotation.Reference;
 import org.springframework.stereotype.Service;
 import org.yeepay.core.service.*;
+import org.yeepay.mch.user.service.EmpMchService;
 
 /**
  * @author: yf
@@ -90,4 +91,6 @@ public class RpcCommonService {
     @Reference(version = "1.0.0", timeout = 10000, retries = -1)
     public ISysLogService rpcSysLogService;
 
+    @Reference(version = "1.0.0", timeout = 10000, retries = -1)
+    public IEmpMchService rpcEmpMchService;
 }
