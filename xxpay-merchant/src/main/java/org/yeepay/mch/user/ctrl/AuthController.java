@@ -180,9 +180,10 @@ public class AuthController extends BaseController {
     public ResponseEntity<?> empAuthToken(HttpServletRequest request,
                                           HttpServletResponse response) throws Exception {
         JSONObject param = getJsonParam(request);
-        String code = URLDecoder.decode(getStringRequired(param, "code"));
+        String code = URLDecoder.decode(getStringRequired(param, "code"),"UTF-8");
 
         Long empId = Long.parseLong(decryptAES(code));
+        _log.info(empId.toString());
 
         EmpMch empMch = empMchService.findByEmpId(empId);
         if(empMch == null) {
