@@ -49,6 +49,7 @@ layui.define(['laytpl', 'layer', 'element', 'util'], function(exports){
       ,'/user/forget' //找回密码
       ,'/template/tips/test' //独立页的一个测试 demo
       ,'/user/mgr_login' //独立页的一个测试 demo
+      ,'/user/emp_login' //独立页的一个测试 demo
     ]
 
     //扩展的第三方模块
