@@ -39,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
@@ -179,7 +180,7 @@ public class AuthController extends BaseController {
     public ResponseEntity<?> empAuthToken(HttpServletRequest request,
                                           HttpServletResponse response) throws Exception {
         JSONObject param = getJsonParam(request);
-        String code = getStringRequired(param, "code");
+        String code = URLDecoder.decode(getStringRequired(param, "code"));
 
         Long empId = Long.parseLong(decryptAES(code));
 
