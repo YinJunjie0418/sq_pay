@@ -315,11 +315,11 @@ public class AuthController extends BaseController {
 
     public static String encryptAES(String data) throws Exception {
         String aesKey = "qwertyuiopasdfgh";
-        String ivString = "asdfghjklzxcvbnm";
+        String ivString = "hgfdsapoiuytrewq";
 
         try {
 
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");   //参数分别代表 算法名称/加密模式/数据填充方式
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");   //参数分别代表 算法名称/加密模式/数据填充方式
             int blockSize = cipher.getBlockSize();
 
             byte[] dataBytes = data.getBytes();
@@ -334,7 +334,7 @@ public class AuthController extends BaseController {
             SecretKeySpec keyspec = new SecretKeySpec(aesKey.getBytes(), "AES");
             IvParameterSpec ivspec = new IvParameterSpec(ivString.getBytes(StandardCharsets.UTF_8));
 
-            cipher.init(Cipher.ENCRYPT_MODE, keyspec);
+            cipher.init(Cipher.ENCRYPT_MODE, keyspec, ivspec);
             byte[] encrypted = cipher.doFinal(plaintext);
 
             return new sun.misc.BASE64Encoder().encode(encrypted);
@@ -347,17 +347,17 @@ public class AuthController extends BaseController {
 
     public static String decryptAES(String data) throws Exception {
         String aesKey = "qwertyuiopasdfgh";
-        String ivString = "asdfghjklzxcvbnm";
+        String ivString = "hgfdsapoiuytrewq";
 
         try {
 
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");   //参数分别代表 算法名称/加密模式/数据填充方式
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");   //参数分别代表 算法名称/加密模式/数据填充方式
             byte[] encrypted1 = Base64.decodeBase64(data);
 
             SecretKeySpec keyspec = new SecretKeySpec(aesKey.getBytes("UTF-8"), "AES");
             IvParameterSpec ivspec = new IvParameterSpec(ivString.getBytes(StandardCharsets.UTF_8));
 
-            cipher.init(Cipher.DECRYPT_MODE, keyspec);
+            cipher.init(Cipher.DECRYPT_MODE, keyspec, ivspec);
 
             byte[] original = cipher.doFinal(encrypted1);
             String originalString = new String(original);
