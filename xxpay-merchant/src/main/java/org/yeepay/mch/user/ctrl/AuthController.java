@@ -182,11 +182,13 @@ public class AuthController extends BaseController {
         JSONObject param = getJsonParam(request);
         String code = URLDecoder.decode(getStringRequired(param, "code"),"UTF-8");
 
-        Long empId = Long.parseLong(decryptAES(code));
+        JSONObject paramCode = JSONObject.parseObject(decryptAES(code));
+        if (null == paramCode.get("orgId")) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
+        }
 
-        EmpMch empMch = empMchService.findByEmpId(empId);
+        EmpMch empMch = empMchService.findByEmpId(Long.parseLong(paramCode.get("orgId").toString()));
         if(empMch == null) {
-            _log.info(empId.toString());
             return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
         }
         MchInfo mchInfo = userService.findByMchId(empMch.getMchId());
