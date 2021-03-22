@@ -181,8 +181,12 @@ public class AuthController extends BaseController {
                                           HttpServletResponse response) throws Exception {
         JSONObject param = getJsonParam(request);
         String code = URLDecoder.decode(getStringRequired(param, "code"),"UTF-8");
-
-        JSONObject paramCode = JSONObject.parseObject(decryptAES(code));
+        _log.info(code);
+        String paramJson = decryptAES(code);
+        if (null == paramJson) {
+            return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
+        }
+        JSONObject paramCode = JSONObject.parseObject(paramJson);
         if (null == paramCode.get("orgId")) {
             return ResponseEntity.ok(BizResponse.build(RetEnum.RET_SERVICE_MCH_NOT_EXIST));
         }
