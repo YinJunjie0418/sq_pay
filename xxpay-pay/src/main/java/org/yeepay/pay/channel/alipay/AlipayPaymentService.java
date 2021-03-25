@@ -304,10 +304,11 @@ public class AlipayPaymentService extends BasePayment {
         alipay_request.setNotifyUrl(payConfig.getNotifyUrl(getChannelName()));
         // 设置同步跳转地址
         alipay_request.setReturnUrl(payConfig.getReturnUrl(getChannelName()));
-        String payParams = null;
+        JSONObject payParams = new JSONObject();
+        String orderInfo;
         JSONObject retObj = buildRetObj();
         try {
-            payParams = client.sdkExecute(alipay_request).getBody();
+            orderInfo = client.sdkExecute(alipay_request).getBody();
         } catch (AlipayApiException e) {
             _log.error(e, "");
             retObj.put("errDes", "下单失败[" + e.getErrMsg() + "]");
@@ -320,11 +321,12 @@ public class AlipayPaymentService extends BasePayment {
             return retObj;
         }
 
-        if(StringUtils.isBlank(payParams)) {
+        if(StringUtils.isBlank(orderInfo)) {
             retObj.put("errDes", "调用支付宝异常!");
             retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
             return retObj;
         }
+        payParams.put("orderInfo", orderInfo);
         rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
         _log.info("{}生成请求支付宝数据,payParams={}", logPrefix, payParams);
         _log.info("###### 商户统一下单处理完成 ######");
