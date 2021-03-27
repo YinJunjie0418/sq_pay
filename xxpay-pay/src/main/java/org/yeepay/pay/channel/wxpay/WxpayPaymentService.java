@@ -147,7 +147,6 @@ public class WxpayPaymentService extends BasePayment {
     public JSONObject micropay(PayOrder payOrder, String authCode) {
         String logPrefix = "【微信付款码支付】";
         JSONObject map = new JSONObject();
-        map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
         try{
             String channelId = payOrder.getChannelId();
             String tradeType = channelId.substring(channelId.indexOf("_") + 1).toUpperCase();   // 转大写,与微信一致
@@ -160,7 +159,6 @@ public class WxpayPaymentService extends BasePayment {
             try {
                 wxPayMicropayResult = wxPayService.micropay(wxPayMicropayRequest);
                 _log.info("{} >>> 付款码下单成功", logPrefix);
-                map.put("payOrderId", payOrderId);
                 int result = rpcCommonService.rpcPayOrderService.updateStatus4Ing(payOrderId, null);
                 _log.info("更新第三方支付订单号:payOrderId={},authCode={},result={}", payOrderId, authCode, result);
 
@@ -168,13 +166,14 @@ public class WxpayPaymentService extends BasePayment {
                 payOrder.setMchOrderNo(wxPayMicropayResult.getTransactionId());
                 Boolean success = paySuccess(payOrder);
                 if (success) {
+                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
+                    map.put("payOrderId", payOrderId);
                     _log.error("{}更新支付状态成功,将payOrderId={},更新payStatus={}成功", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
                 } else {
                     _log.error("{}更新支付状态失败,将payOrderId={},更新payStatus={}失败", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
+                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                     map.put(PayConstant.RESPONSE_RESULT, WxPayNotifyResponse.fail("处理订单失败"));
-                    return map;
                 }
-
             } catch (WxPayException e) {
                 _log.error(e, "下单失败");
                 //出现业务错误
@@ -194,8 +193,6 @@ public class WxpayPaymentService extends BasePayment {
                                     Thread.sleep(1000);
                                     WxPayOrderQueryResult wxPayOrderQueryResult = wxPayService.queryOrder(null, wxPayMicropayRequest.getOutTradeNo());
                                     if (wxPayOrderQueryResult.getTradeState().equals("SUCCESS")) {
-                                        map.put("payOrderId", payOrderId);
-
                                         // 修改支付成功状态
                                         payOrder.setMchOrderNo(wxPayOrderQueryResult.getTransactionId());
                                         Boolean success = paySuccess(payOrder);
@@ -204,8 +201,6 @@ public class WxpayPaymentService extends BasePayment {
                                         } else {
                                             _log.error("{}更新支付状态失败,将payOrderId={},更新payStatus={}失败", logPrefix, payOrder.getPayOrderId(), PayConstant.PAY_STATUS_SUCCESS);
                                             break;
-    //                                                map.put(PayConstant.RESPONSE_RESULT, WxPayNotifyResponse.fail("处理订单失败"));
-    //                                                return map;
                                         }
 
                                         break;
@@ -222,21 +217,16 @@ public class WxpayPaymentService extends BasePayment {
                                         // 撤销单失败
                                         _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
                                     }
-                                    map.put("errDes", "下单失败[未支付]");
-                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                     break;
                                 } catch (WxPayException  eq) {
-                                    map.put("errDes", eq.getErrCodeDes());
-                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                     break;
                                 } catch ( InterruptedException ie) {
-                                    map.put("errDes", "微信支付统一下单异常");
-                                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                     break;
                                 }
                             }
                         }
                     ).start();
+                    map.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
                     map.put("payOrderId", payOrderId);
                 } else {
                     map.put("errDes", e.getErrCodeDes());

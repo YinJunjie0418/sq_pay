@@ -802,15 +802,8 @@ public class AlipayPaymentService extends BasePayment {
                                         _log.info("====== 付款码支付修改状态成功 ======");
                                     } else {
                                         _log.info("====== 付款码支付修改状态失败 ======");
-                                        retObj.put("errDes", "下单失败[TRADE_SUCCESS]");
-                                        retObj.put(PayConstant.RESPONSE_RESULT, PayConstant.RETURN_VALUE_FAIL);
-                                        break;
-//                                        return retObj;
                                     }
-                                    retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_SUCCESS);
-                                    retObj.put("payOrderId", payOrderId);
                                     break;
-//                                    return retObj;
                                 }
 
                                 if (alipayTradeQueryResponse.getTradeStatus().equals("WAIT_BUYER_PAY") && i > 1) {
@@ -829,19 +822,11 @@ public class AlipayPaymentService extends BasePayment {
                                     // 撤销单失败
                                     _log.info("{}撤销单号失败{}", logPrefix, payOrder.getPayOrderId());
                                 }
-                                retObj.put("errDes", "下单失败[未支付]");
-                                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                 break;
-//                                return retObj;
                             } catch (AlipayApiException eq) {
                                 _log.error(eq, "");
-                                retObj.put("errDes", "下单失败[" + eq.getErrMsg() + "]");
-                                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                 break;
-//                                return retObj;
                             } catch (InterruptedException e) {
-                                retObj.put("errDes", "微信支付统一下单异常");
-                                retObj.put(PayConstant.RETURN_PARAM_RETCODE, PayConstant.RETURN_VALUE_FAIL);
                                 break;
                             }
                         }
