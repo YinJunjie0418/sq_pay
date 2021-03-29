@@ -261,10 +261,10 @@
             console.log("agentRate:" + agentRate + ",mchRate:" + mchRate);
             // 如果商户有代理,则需与代理商费率对比判断
             if(agentId != '') {
-                if(agentRate == '' || agentRate == '未设置') {
-                    layer.alert("请先去代理商管理中配置代理商费率",{title: '提示'});
-                    return false;
-                }
+               // if(agentRate == '' || agentRate == '未设置') {
+               //     layer.alert("请先去代理商管理中配置代理商费率",{title: '提示'});
+                //    return false;
+                //}
                 if(agentRate/1 > mchRate/1) {
                     layer.alert("代理商费率不能大于商户费率",{title: '提示'});
                     return false;
