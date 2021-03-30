@@ -1,5 +1,12 @@
 
 <script>
+function GetQueryString(name)
+{
+     var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+     var r = window.location.search.substr(1).match(reg);
+     if(r!=null)return  unescape(r[2]); return null;
+}
+
 layui.use(['admin', 'form', 'user'], function(){
   var $ = layui.$
   ,setter = layui.setter
@@ -9,7 +16,7 @@ layui.use(['admin', 'form', 'user'], function(){
 
 
   var mchId = layui.router().search.mchId;
-  var token = layui.router().search.token;
+  var token = GetQueryString("guiguThirdAppToken");
 
   //请求登入接口
   admin.req({
