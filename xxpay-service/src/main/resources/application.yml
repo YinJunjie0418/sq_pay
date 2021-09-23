@@ -15,7 +15,7 @@ spring:
       port: 20880
     scan: org.yeepay.service.impl
   profiles:
-     active: prod
+     active: test
 
 logging:
   file: ./log/yeepay-service.log

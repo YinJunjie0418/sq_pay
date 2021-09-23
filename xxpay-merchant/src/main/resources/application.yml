@@ -30,7 +30,7 @@ spring:
     serialization:
       INDENT_OUTPUT: true
   profiles:
-     active: prod
+     active: test
 
 # JWT
 jwt:
@@ -40,6 +40,8 @@ jwt:
 
 logging:
   file: ./log/yeepay-merchant.log
+  level:
+    org.yeepay.mch.user.service: debug
 
 config:
   appId: wx077cb62e341f8a5c

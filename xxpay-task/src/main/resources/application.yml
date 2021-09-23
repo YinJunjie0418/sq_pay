@@ -9,7 +9,7 @@ spring:
       address: zookeeper://127.0.0.1:2181
     scan: org.yeepay
   profiles:
-     active: prod
+     active: test
 
   mvc:
     static-path-pattern: /mch_bill_down/**

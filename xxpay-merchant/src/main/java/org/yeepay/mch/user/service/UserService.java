@@ -1,5 +1,6 @@
 package org.yeepay.mch.user.service;
 
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -82,7 +83,11 @@ public class UserService {
     }
 
     public MchInfo findByLoginName(String loginName) {
-        return rpcCommonService.rpcMchInfoService.findByLoginName(loginName);
+
+        MchInfo byLoginName = rpcCommonService.rpcMchInfoService.findByLoginName(loginName);
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+loginName+"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+byLoginName+"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+        return byLoginName;
     }
 
     public MchInfo findByMobile(Long mobile) {

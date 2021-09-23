@@ -9,7 +9,7 @@ spring:
     application:
       name: yeepay-pay
     registry:
-      address: zookeeper://127.0.0.1:2181
+      address: zookeeper://192.168.100.201:2181
     protocol:
       name: dubbo
       port: 20881
@@ -44,6 +44,12 @@ spring:
     templateLoaderPath: classpath:/templates/
     settings:
       number_format: 0.##
+
+  jackson:
+    serialization:
+      INDENT_OUTPUT: true
+  profiles:
+    active: test
 
 logging:
   file: ./log/yeepay-pay.log

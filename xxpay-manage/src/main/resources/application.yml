@@ -33,7 +33,7 @@ spring:
     serialization:
       INDENT_OUTPUT: true
   profiles:
-     active: prod
+     active: test
 
 # JWT
 jwt:
